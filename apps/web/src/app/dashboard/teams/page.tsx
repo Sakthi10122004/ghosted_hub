@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users } from "lucide-react"
+import { CreateTeamDialog } from "./_components/create-team-dialog"
 
 export default function TeamsPage() {
   const { data, isLoading } = useQuery({
@@ -21,10 +22,7 @@ export default function TeamsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Teams</h1>
           <p className="text-muted-foreground">Manage student teams across cohorts.</p>
         </div>
-        <Button>
-          <Users className="mr-2" />
-          Create Team
-        </Button>
+        <CreateTeamDialog />
       </div>
 
       <Card>

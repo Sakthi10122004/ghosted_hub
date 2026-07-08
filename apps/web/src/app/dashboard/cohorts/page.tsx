@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PlusCircle } from "lucide-react"
 import Link from "next/link"
+import { CreateCohortDialog } from "./_components/create-cohort-dialog"
 
 export default function CohortsPage() {
   const { data, isLoading } = useQuery({
@@ -22,10 +23,7 @@ export default function CohortsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Cohorts</h1>
           <p className="text-muted-foreground">Manage active and past program cohorts.</p>
         </div>
-        <Button>
-          <PlusCircle className="mr-2" />
-          New Cohort
-        </Button>
+        <CreateCohortDialog />
       </div>
 
       <Card>

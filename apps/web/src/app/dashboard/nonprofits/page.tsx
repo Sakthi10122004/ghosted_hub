@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Building2, PlusCircle } from "lucide-react"
+import { CreateNonprofitDialog } from "./_components/create-nonprofit-dialog"
 
 export default function NonprofitsPage() {
   const { data, isLoading } = useQuery({
@@ -20,10 +21,7 @@ export default function NonprofitsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Nonprofits</h1>
           <p className="text-muted-foreground">Manage organization profiles and applications.</p>
         </div>
-        <Button>
-          <PlusCircle className="mr-2" />
-          Add Nonprofit
-        </Button>
+        <CreateNonprofitDialog />
       </div>
 
       <Card>
