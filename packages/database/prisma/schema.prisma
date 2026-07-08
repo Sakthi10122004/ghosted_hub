@@ -1,0 +1,955 @@
+// ─────────────────────────────────────────────────────────────────
+// Ghosted Platform — Database Schema
+// ─────────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ENUMS
+// ═══════════════════════════════════════════════════════════════
+
+enum UserRole {
+  SUPER_ADMIN
+  ORGANIZER
+  MENTOR
+  TEAM_LEAD
+  STUDENT
+  NONPROFIT_REP
+}
+
+enum CohortStatus {
+  DRAFT
+  REGISTRATION
+  SELECTION
+  DISCOVERY
+  DEVELOPMENT
+  REVIEW
+  TRAINING
+  DEPLOYMENT
+  COMPLETED
+  ARCHIVED
+}
+
+enum ApplicationType {
+  STUDENT
+  NONPROFIT
+}
+
+enum ApplicationStatus {
+  APPLIED
+  SCREENING
+  REVIEWED
+  INTERVIEW
+  ACCEPTED
+  REJECTED
+  ASSIGNED
+  COMPLETED
+  WITHDRAWN
+}
+
+enum ProjectStatus {
+  CREATED
+  DISCOVERY
+  DEVELOPMENT
+  INTERNAL_REVIEW
+  REVISION
+  NONPROFIT_REVIEW
+  TRAINING
+  FINAL_DELIVERABLES
+  DEPLOYMENT_DECISION
+  COMPLETED
+  ARCHIVED
+}
+
+enum TaskStatus {
+  BACKLOG
+  TODO
+  IN_PROGRESS
+  IN_REVIEW
+  COMPLETED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum ReviewStatus {
+  SUBMITTED
+  INTERNAL_REVIEW
+  NEEDS_CHANGES
+  RESUBMITTED
+  APPROVED
+  NONPROFIT_REVIEW
+  REVISION
+  FINAL_APPROVED
+}
+
+enum ReviewCategory {
+  DESIGN
+  ACCESSIBILITY
+  PERFORMANCE
+  GHOST_VALIDATION
+  SEO
+  SECURITY
+  RESPONSIVENESS
+  CODE_QUALITY
+}
+
+enum DeliverableStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  REVISION_REQUESTED
+}
+
+enum DeliverableType {
+  THEME_ZIP
+  CONTENT_EXPORT
+  ROUTES_YAML
+  REDIRECTS_YAML
+  GSCAN_REPORT
+  README
+  DOCUMENTATION
+  ASSETS
+  LICENSE
+  OTHER
+}
+
+enum DeploymentOption {
+  OASIS_HOSTING
+  SELF_HOSTING
+  THIRD_PARTY_HOSTING
+}
+
+enum TrainingStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum NotificationType {
+  APPLICATION_RECEIVED
+  REVIEW_REQUESTED
+  REVIEW_COMPLETED
+  MEETING_SCHEDULED
+  TASK_ASSIGNED
+  TASK_COMPLETED
+  DEADLINE_REMINDER
+  DELIVERABLE_SUBMITTED
+  DELIVERABLE_APPROVED
+  TRAINING_SCHEDULED
+  PROJECT_COMPLETED
+  FILE_UPLOADED
+  MESSAGE_RECEIVED
+  TEAM_ASSIGNED
+  SYSTEM
+}
+
+enum FileCategory {
+  LOGO
+  DOCUMENT
+  IMAGE
+  VIDEO
+  ANNUAL_REPORT
+  BRANDING
+  DELIVERABLE
+  RESOURCE
+  OTHER
+}
+
+// ═══════════════════════════════════════════════════════════════
+// USER MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  avatarUrl     String?
+  phone         String?
+  bio           String?
+  isActive      Boolean   @default(true)
+  emailVerified Boolean   @default(false)
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  // Relations
+  roles            UserRoleAssignment[]
+  studentProfile   StudentProfile?
+  nonprofitRep     NonprofitContact[]
+  teamMemberships  TeamMember[]
+  applications     Application[]
+  assignedTasks    Task[]               @relation("TaskAssignee")
+  createdTasks     Task[]               @relation("TaskCreator")
+  taskComments     TaskComment[]
+  reviews          ReviewCycle[]         @relation("Reviewer")
+  messages         Message[]
+  notifications    Notification[]
+  uploadedFiles    ProjectFile[]
+  deliverableUploads DeliverableVersion[] @relation("Uploader")
+  deliverableReviews DeliverableVersion[] @relation("DeliverableReviewer")
+  auditLogs        AuditLog[]
+  meetingAttendees MeetingAttendee[]
+  trainingAttendees TrainingAttendee[]
+  invitations      Invitation[]         @relation("InvitedBy")
+  accounts         Account[]
+  sessions         Session[]
+
+  @@index([email])
+  @@index([deletedAt])
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("sessions")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?   @db.Text
+  refreshToken          String?   @db.Text
+  idToken               String?   @db.Text
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Verification {
+  id         String    @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @updatedAt
+
+  @@map("verifications")
+}
+
+model UserRoleAssignment {
+  id        String   @id @default(cuid())
+  userId    String
+  role      UserRole
+  cohortId  String?  // Role scoped to a specific cohort (optional)
+  createdAt DateTime @default(now())
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cohort Cohort? @relation(fields: [cohortId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, role, cohortId])
+  @@index([userId])
+  @@map("user_role_assignments")
+}
+
+model Invitation {
+  id        String   @id @default(cuid())
+  email     String
+  role      UserRole
+  cohortId  String?
+  token     String   @unique
+  expiresAt DateTime
+  accepted  Boolean  @default(false)
+  invitedById String
+  createdAt DateTime @default(now())
+
+  invitedBy User    @relation("InvitedBy", fields: [invitedById], references: [id])
+  cohort    Cohort? @relation(fields: [cohortId], references: [id])
+
+  @@index([token])
+  @@index([email])
+  @@map("invitations")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STUDENT PROFILES
+// ═══════════════════════════════════════════════════════════════
+
+model StudentProfile {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  university     String?
+  major          String?
+  graduationYear Int?
+  skills         String[] // Array of skill tags
+  portfolioUrl   String?
+  githubUrl      String?
+  linkedinUrl    String?
+  resumeUrl      String?
+  ghostExperience String?
+  uiSkills       String?
+  availability   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("student_profiles")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// COHORT MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+
+model Cohort {
+  id                  String       @id @default(cuid())
+  name                String
+  description         String?
+  status              CohortStatus @default(DRAFT)
+  registrationOpensAt DateTime?
+  registrationClosesAt DateTime?
+  sprintStartDate     DateTime?
+  sprintEndDate       DateTime?
+  maxTeams            Int?
+  maxStudentsPerTeam  Int?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  deletedAt           DateTime?
+
+  // Relations
+  projects     Project[]
+  teams        Team[]
+  nonprofits   CohortNonprofit[]
+  applications Application[]
+  roleAssignments UserRoleAssignment[]
+  invitations  Invitation[]
+  calendarEvents CohortCalendarEvent[]
+
+  @@index([status])
+  @@index([deletedAt])
+  @@map("cohorts")
+}
+
+model CohortCalendarEvent {
+  id          String   @id @default(cuid())
+  cohortId    String
+  title       String
+  description String?
+  startDate   DateTime
+  endDate     DateTime?
+  isAllDay    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  cohort Cohort @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+
+  @@index([cohortId])
+  @@map("cohort_calendar_events")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// NONPROFIT MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+
+model Nonprofit {
+  id             String    @id @default(cuid())
+  name           String
+  description    String?
+  mission        String?
+  vision         String?
+  programs       String?
+  websiteUrl     String?
+  logoUrl        String?
+  socialLinks    Json?     // { twitter, facebook, instagram, linkedin }
+  address        String?
+  city           String?
+  state          String?
+  country        String?
+  zipCode        String?
+  ein            String?   // Tax ID
+  foundedYear    Int?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  // Relations
+  contacts       NonprofitContact[]
+  cohorts        CohortNonprofit[]
+  projects       Project[]
+  documents      NonprofitDocument[]
+
+  @@index([deletedAt])
+  @@map("nonprofits")
+}
+
+model NonprofitContact {
+  id          String  @id @default(cuid())
+  nonprofitId String
+  userId      String
+  isPrimary   Boolean @default(false)
+  title       String?
+  createdAt   DateTime @default(now())
+
+  nonprofit Nonprofit @relation(fields: [nonprofitId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([nonprofitId, userId])
+  @@map("nonprofit_contacts")
+}
+
+model NonprofitDocument {
+  id          String       @id @default(cuid())
+  nonprofitId String
+  name        String
+  fileUrl     String
+  fileSize    Int?
+  mimeType    String?
+  category    FileCategory @default(DOCUMENT)
+  createdAt   DateTime     @default(now())
+
+  nonprofit Nonprofit @relation(fields: [nonprofitId], references: [id], onDelete: Cascade)
+
+  @@index([nonprofitId])
+  @@map("nonprofit_documents")
+}
+
+model CohortNonprofit {
+  id          String   @id @default(cuid())
+  cohortId    String
+  nonprofitId String
+  createdAt   DateTime @default(now())
+
+  cohort    Cohort    @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+  nonprofit Nonprofit @relation(fields: [nonprofitId], references: [id], onDelete: Cascade)
+
+  @@unique([cohortId, nonprofitId])
+  @@map("cohort_nonprofits")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// APPLICATIONS
+// ═══════════════════════════════════════════════════════════════
+
+model Application {
+  id          String            @id @default(cuid())
+  type        ApplicationType
+  status      ApplicationStatus @default(APPLIED)
+  cohortId    String
+  userId      String
+  responses   Json?             // Form responses as JSON
+  notes       String?           // Internal reviewer notes
+  reviewedAt  DateTime?
+  reviewedBy  String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  cohort Cohort @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([cohortId, userId, type])
+  @@index([cohortId, status])
+  @@index([userId])
+  @@map("applications")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TEAM MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+
+model Team {
+  id        String   @id @default(cuid())
+  name      String
+  cohortId  String
+  capacity  Int      @default(5)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  // Relations
+  cohort    Cohort       @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+  members   TeamMember[]
+  projects  Project[]
+
+  @@index([cohortId])
+  @@map("teams")
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  teamId    String
+  userId    String
+  role      UserRole @default(STUDENT) // STUDENT, TEAM_LEAD, or MENTOR
+  joinedAt  DateTime @default(now())
+  leftAt    DateTime?
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([teamId])
+  @@index([userId])
+  @@map("team_members")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PROJECT — THE HEART OF THE PLATFORM
+// ═══════════════════════════════════════════════════════════════
+
+model Project {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  status      ProjectStatus @default(CREATED)
+  cohortId    String
+  teamId      String?
+  nonprofitId String
+  startDate   DateTime?
+  endDate     DateTime?
+  websiteUrl  String?       // Final deployed site URL
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  cohort       Cohort              @relation(fields: [cohortId], references: [id])
+  team         Team?               @relation(fields: [teamId], references: [id])
+  nonprofit    Nonprofit           @relation(fields: [nonprofitId], references: [id])
+  discovery    Discovery?
+  tasks        Task[]
+  files        ProjectFile[]
+  reviews      Review[]
+  deliverables Deliverable[]
+  trainings    TrainingSession[]
+  meetings     Meeting[]
+  messages     Message[]
+  timeline     TimelineEvent[]
+  milestones   Milestone[]
+  deployment   DeploymentDecision?
+
+  @@index([cohortId])
+  @@index([teamId])
+  @@index([nonprofitId])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("projects")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DISCOVERY MODULE
+// ═══════════════════════════════════════════════════════════════
+
+model Discovery {
+  id               String   @id @default(cuid())
+  projectId        String   @unique
+  kickoffDate      DateTime?
+  kickoffNotes     String?
+  requirements     Json?    // Structured requirements
+  sitemap          Json?    // Page hierarchy
+  navigation       Json?    // Navigation structure
+  contentPlan      Json?    // Content plan
+  brandDiscussion  Json?    // Brand notes, colors, fonts
+  referenceWebsites Json?   // Array of reference URLs
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("discoveries")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TASK MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+
+model Task {
+  id          String       @id @default(cuid())
+  projectId   String
+  title       String
+  description String?
+  status      TaskStatus   @default(BACKLOG)
+  priority    TaskPriority @default(MEDIUM)
+  assigneeId  String?
+  creatorId   String
+  dueDate     DateTime?
+  position    Int          @default(0) // For ordering within a column
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  completedAt DateTime?
+
+  // Relations
+  project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignee    User?           @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  creator     User            @relation("TaskCreator", fields: [creatorId], references: [id])
+  comments    TaskComment[]
+  attachments TaskAttachment[]
+
+  @@index([projectId, status])
+  @@index([assigneeId])
+  @@map("tasks")
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  authorId  String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id])
+
+  @@index([taskId])
+  @@map("task_comments")
+}
+
+model TaskAttachment {
+  id        String   @id @default(cuid())
+  taskId    String
+  name      String
+  fileUrl   String
+  fileSize  Int?
+  mimeType  String?
+  createdAt DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("task_attachments")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FILE MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+
+model ProjectFile {
+  id          String       @id @default(cuid())
+  projectId   String
+  uploadedById String
+  name        String
+  fileUrl     String
+  fileSize    Int?
+  mimeType    String?
+  category    FileCategory @default(OTHER)
+  tags        String[]
+  version     Int          @default(1)
+  parentId    String?      // For versioning — points to previous version
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  project    Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploadedBy User         @relation(fields: [uploadedById], references: [id])
+  parent     ProjectFile? @relation("FileVersions", fields: [parentId], references: [id])
+  versions   ProjectFile[] @relation("FileVersions")
+
+  @@index([projectId, category])
+  @@index([uploadedById])
+  @@map("project_files")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REVIEW SYSTEM
+// ═══════════════════════════════════════════════════════════════
+
+model Review {
+  id          String         @id @default(cuid())
+  projectId   String
+  title       String
+  description String?
+  category    ReviewCategory
+  status      ReviewStatus   @default(SUBMITTED)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  project Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  cycles  ReviewCycle[]
+
+  @@index([projectId, status])
+  @@map("reviews")
+}
+
+model ReviewCycle {
+  id         String       @id @default(cuid())
+  reviewId   String
+  reviewerId String
+  cycleNumber Int
+  status     ReviewStatus
+  feedback   String?
+  submittedAt DateTime?
+  reviewedAt  DateTime?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  review   Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  reviewer User   @relation("Reviewer", fields: [reviewerId], references: [id])
+
+  @@index([reviewId])
+  @@map("review_cycles")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DELIVERABLES
+// ═══════════════════════════════════════════════════════════════
+
+model Deliverable {
+  id          String         @id @default(cuid())
+  projectId   String
+  type        DeliverableType
+  name        String
+  description String?
+  status      DeliverableStatus @default(DRAFT)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  project  Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  versions DeliverableVersion[]
+
+  @@index([projectId, type])
+  @@map("deliverables")
+}
+
+model DeliverableVersion {
+  id             String           @id @default(cuid())
+  deliverableId  String
+  version        Int
+  fileUrl        String
+  fileSize       Int?
+  uploadedById   String
+  reviewerId     String?
+  status         DeliverableStatus @default(SUBMITTED)
+  reviewNotes    String?
+  uploadedAt     DateTime         @default(now())
+  reviewedAt     DateTime?
+
+  deliverable Deliverable @relation(fields: [deliverableId], references: [id], onDelete: Cascade)
+  uploadedBy  User        @relation("Uploader", fields: [uploadedById], references: [id])
+  reviewer    User?       @relation("DeliverableReviewer", fields: [reviewerId], references: [id])
+
+  @@unique([deliverableId, version])
+  @@index([deliverableId])
+  @@map("deliverable_versions")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TRAINING
+// ═══════════════════════════════════════════════════════════════
+
+model TrainingSession {
+  id           String         @id @default(cuid())
+  projectId    String
+  title        String
+  description  String?
+  trainerId    String?
+  scheduledAt  DateTime?
+  duration     Int?           // minutes
+  status       TrainingStatus @default(SCHEDULED)
+  topics       String[]
+  recordingUrl String?
+  resourceUrls String[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  project   Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  attendees TrainingAttendee[]
+
+  @@index([projectId])
+  @@map("training_sessions")
+}
+
+model TrainingAttendee {
+  id         String   @id @default(cuid())
+  sessionId  String
+  userId     String
+  attended   Boolean  @default(false)
+  completedAt DateTime?
+
+  session TrainingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User            @relation(fields: [userId], references: [id])
+
+  @@unique([sessionId, userId])
+  @@map("training_attendees")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MEETINGS
+// ═══════════════════════════════════════════════════════════════
+
+model Meeting {
+  id          String   @id @default(cuid())
+  projectId   String
+  title       String
+  description String?
+  scheduledAt DateTime
+  duration    Int?     // minutes
+  meetingUrl  String?
+  agenda      String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project   Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  attendees MeetingAttendee[]
+
+  @@index([projectId])
+  @@map("meetings")
+}
+
+model MeetingAttendee {
+  id        String  @id @default(cuid())
+  meetingId String
+  userId    String
+  attended  Boolean @default(false)
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([meetingId, userId])
+  @@map("meeting_attendees")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MESSAGES / COMMUNICATION
+// ═══════════════════════════════════════════════════════════════
+
+model Message {
+  id          String   @id @default(cuid())
+  projectId   String
+  authorId    String
+  content     String
+  isAnnouncement Boolean @default(false)
+  parentId    String?  // For threading
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  project  Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author   User      @relation(fields: [authorId], references: [id])
+  parent   Message?  @relation("MessageThread", fields: [parentId], references: [id])
+  replies  Message[] @relation("MessageThread")
+
+  @@index([projectId])
+  @@index([parentId])
+  @@map("messages")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MILESTONES & TIMELINE
+// ═══════════════════════════════════════════════════════════════
+
+model Milestone {
+  id          String    @id @default(cuid())
+  projectId   String
+  title       String
+  description String?
+  dueDate     DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("milestones")
+}
+
+model TimelineEvent {
+  id          String   @id @default(cuid())
+  projectId   String
+  title       String
+  description String?
+  metadata    Json?
+  occurredAt  DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, occurredAt])
+  @@map("timeline_events")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DEPLOYMENT DECISION
+// ═══════════════════════════════════════════════════════════════
+
+model DeploymentDecision {
+  id         String           @id @default(cuid())
+  projectId  String           @unique
+  option     DeploymentOption
+  notes      String?
+  decidedAt  DateTime         @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("deployment_decisions")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// NOTIFICATIONS
+// ═══════════════════════════════════════════════════════════════
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String?
+  link      String?          // Deep link into the platform
+  isRead    Boolean          @default(false)
+  metadata  Json?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// AUDIT LOGS
+// ═══════════════════════════════════════════════════════════════
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String   // e.g. "user.login", "project.status_change"
+  entityType String?  // e.g. "Project", "Task", "Review"
+  entityId   String?
+  metadata   Json?    // Additional context
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

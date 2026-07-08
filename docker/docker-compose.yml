@@ -1,0 +1,105 @@
+# ─────────────────────────────────────────────────────────────────
+# Ghosted Platform — Development Infrastructure
+# ─────────────────────────────────────────────────────────────────
+# Usage:
+#   docker compose up -d          Start all services
+#   docker compose down           Stop all services
+#   docker compose logs -f        Follow logs
+#   docker compose ps             Check service status
+# ─────────────────────────────────────────────────────────────────
+
+name: ghosted
+
+services:
+  # ─── PostgreSQL 17 ──────────────────────────────────────────────
+  postgres:
+    image: postgres:17-alpine
+    container_name: ghosted-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ghosted
+      POSTGRES_PASSWORD: ghosted_secret
+      POSTGRES_DB: ghosted
+    volumes:
+      - ghosted-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ghosted -d ghosted"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - ghosted-network
+
+  # ─── Redis 7 ────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: ghosted-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - ghosted-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - ghosted-network
+
+  # ─── MinIO (S3-compatible Object Storage) ───────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: ghosted-minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000"   # API
+      - "9001:9001"   # Console
+    environment:
+      MINIO_ROOT_USER: ghosted_minio
+      MINIO_ROOT_PASSWORD: ghosted_minio_secret
+    command: server /data --console-address ":9001"
+    volumes:
+      - ghosted-minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - ghosted-network
+
+  # ─── MinIO Bucket Initialization ────────────────────────────────
+  minio-init:
+    image: minio/mc:latest
+    container_name: ghosted-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set ghosted http://minio:9000 ghosted_minio ghosted_minio_secret;
+      mc mb --ignore-existing ghosted/ghosted-files;
+      mc anonymous set download ghosted/ghosted-files/public;
+      echo 'MinIO bucket initialized successfully';
+      "
+    networks:
+      - ghosted-network
+
+volumes:
+  ghosted-postgres-data:
+    driver: local
+  ghosted-redis-data:
+    driver: local
+  ghosted-minio-data:
+    driver: local
+
+networks:
+  ghosted-network:
+    driver: bridge

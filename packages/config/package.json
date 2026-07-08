@@ -1,0 +1,10 @@
+{
+  "name": "@ghosted/config",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Shared configuration for the Ghosted monorepo",
+  "files": [
+    "typescript",
+    "eslint"
+  ]
+}
