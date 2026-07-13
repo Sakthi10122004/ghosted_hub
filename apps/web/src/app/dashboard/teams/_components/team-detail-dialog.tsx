@@ -24,6 +24,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { useUserRole } from "@/hooks/use-user-role";
 
 interface TeamMember {
   id: string;
@@ -53,7 +54,8 @@ interface TeamDetailDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-function getInitials(name: string) {
+function getInitials(name: string | undefined) {
+  if (!name) return "?";
   return name
     .split(" ")
     .map((n) => n[0])
@@ -84,6 +86,7 @@ export function TeamDetailDialog({ team, open, onOpenChange }: TeamDetailDialogP
   const [editingCapacity, setEditingCapacity] = useState(false);
   const [newName, setNewName] = useState("");
   const [newCapacity, setNewCapacity] = useState("");
+  const { isAdmin } = useUserRole();
 
   // Fetch available users to add
   const { data: usersData } = useQuery({
@@ -192,15 +195,17 @@ export function TeamDetailDialog({ team, open, onOpenChange }: TeamDetailDialogP
                 ) : (
                   <DialogTitle className="font-serif text-2xl font-bold text-foreground flex items-center gap-2">
                     {team.name}
-                    <button
-                      onClick={() => {
-                        setNewName(team.name);
-                        setEditingName(true);
-                      }}
-                      className="opacity-0 group-hover:opacity-100 hover:opacity-100 focus:opacity-100 transition-opacity"
-                    >
-                      <Pencil className="w-4 h-4 text-muted-foreground hover:text-foreground" />
-                    </button>
+                    {isAdmin && (
+                      <button
+                        onClick={() => {
+                          setNewName(team.name);
+                          setEditingName(true);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 hover:opacity-100 focus:opacity-100 transition-opacity"
+                      >
+                        <Pencil className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                      </button>
+                    )}
                   </DialogTitle>
                 )}
                 <DialogDescription asChild>
@@ -258,7 +263,7 @@ export function TeamDetailDialog({ team, open, onOpenChange }: TeamDetailDialogP
                       <X className="w-3 h-3" />
                     </Button>
                   </div>
-                ) : (
+                ) : isAdmin ? (
                   <button
                     onClick={() => {
                       setNewCapacity(String(team.capacity));
@@ -272,6 +277,11 @@ export function TeamDetailDialog({ team, open, onOpenChange }: TeamDetailDialogP
                     </span>
                     <Pencil className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                   </button>
+                ) : (
+                  <span className="text-sm font-bold text-foreground">
+                    {activeMembers.length}
+                    <span className="text-muted-foreground font-medium"> / {team.capacity}</span>
+                  </span>
                 )}
               </div>
             </div>
@@ -360,41 +370,43 @@ export function TeamDetailDialog({ team, open, onOpenChange }: TeamDetailDialogP
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {member.role !== "TEAM_LEAD" && (
+                    {isAdmin && (
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {member.role !== "TEAM_LEAD" && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 rounded-lg hover:bg-[#FBBF24]/20"
+                            onClick={() =>
+                              setRoleMutation.mutate({
+                                teamId: team.id,
+                                userId: member.user.id,
+                                role: "TEAM_LEAD",
+                              })
+                            }
+                            disabled={setRoleMutation.isPending}
+                            title="Promote to Captain"
+                          >
+                            <Crown className="w-3.5 h-3.5 text-[#B45309]" />
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 p-0 rounded-lg hover:bg-[#FBBF24]/20"
+                          className="h-8 w-8 p-0 rounded-lg hover:bg-destructive/10"
                           onClick={() =>
-                            setRoleMutation.mutate({
+                            removeMemberMutation.mutate({
                               teamId: team.id,
                               userId: member.user.id,
-                              role: "TEAM_LEAD",
                             })
                           }
-                          disabled={setRoleMutation.isPending}
-                          title="Promote to Captain"
+                          disabled={removeMemberMutation.isPending}
+                          title="Remove from team"
                         >
-                          <Crown className="w-3.5 h-3.5 text-[#B45309]" />
+                          <UserMinus className="w-3.5 h-3.5 text-destructive" />
                         </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 rounded-lg hover:bg-destructive/10"
-                        onClick={() =>
-                          removeMemberMutation.mutate({
-                            teamId: team.id,
-                            userId: member.user.id,
-                          })
-                        }
-                        disabled={removeMemberMutation.isPending}
-                        title="Remove from team"
-                      >
-                        <UserMinus className="w-3.5 h-3.5 text-destructive" />
-                      </Button>
-                    </div>
+                      </div>
+                    )}
                   </div>
                 ))
               )}
@@ -402,7 +414,7 @@ export function TeamDetailDialog({ team, open, onOpenChange }: TeamDetailDialogP
           </div>
 
           {/* Add Members */}
-          {!isAtCapacity && (
+          {isAdmin && !isAtCapacity && (
             <div>
               <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
                 <UserPlus className="w-3.5 h-3.5" />

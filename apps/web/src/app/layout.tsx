@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
-import { Inter, Outfit, Lora } from "next/font/google";
+import { Inter, IBM_Plex_Mono } from "next/font/google";
 import { Providers } from "@/lib/providers";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
-const lora = Lora({ subsets: ["latin"], variable: "--font-lora" });
+const ibmPlexMono = IBM_Plex_Mono({ weight: ["400", "500", "600", "700"], subsets: ["latin"], variable: "--font-ibm-plex-mono" });
 
 export const metadata: Metadata = {
   title: "Ghosted Hub | The operating system for the Ghosted program",
@@ -19,7 +18,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${outfit.variable} ${lora.variable} antialiased min-h-screen bg-background`}>
+      <body className={`${inter.variable} ${ibmPlexMono.variable} font-sans antialiased min-h-screen bg-background text-foreground`}>
         <Providers>{children}</Providers>
       </body>
     </html>

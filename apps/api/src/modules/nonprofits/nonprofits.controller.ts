@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Patch, Delete, Param, Body, Query } from "@nestjs/common";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { ApiTags, ApiOperation, ApiQuery } from "@nestjs/swagger";
 import { NonprofitsService } from "./nonprofits.service";
 
@@ -17,8 +18,13 @@ export class NonprofitsController {
   @ApiOperation({ summary: "List nonprofits" })
   @ApiQuery({ name: "page", required: false }) @ApiQuery({ name: "limit", required: false })
   @ApiQuery({ name: "search", required: false })
-  findAll(@Query("page") page?: number, @Query("limit") limit?: number, @Query("search") search?: string) {
-    return this.nonprofitsService.findAll({ page, limit, search });
+  findAll(
+    @Query("page") page?: number, 
+    @Query("limit") limit?: number, 
+    @Query("search") search?: string,
+    @CurrentUser() user?: any
+  ) {
+    return this.nonprofitsService.findAll({ page, limit, search }, user);
   }
 
   @Get(":id")

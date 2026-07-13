@@ -5,38 +5,28 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 export class ReviewsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll() {
+  async findAll(projectId: string, user?: any) {
     const reviews = await this.prisma.review.findMany({
+      where: { projectId },
       include: {
-        project: true,
+        project: { select: { id: true, name: true } },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: { createdAt: 'desc' },
     });
 
-    // If no reviews, return some mock data to show in UI
-    if (reviews.length === 0) {
-      return {
-        data: [
-          {
-            id: 'r1',
-            title: 'Homepage Design Mockup',
-            category: 'Design',
-            status: 'Needs Changes',
-            project: { name: 'Riverbend Youth Alliance' },
-          },
-          {
-            id: 'r2',
-            title: 'About Page Content',
-            category: 'Content',
-            status: 'Submitted',
-            project: { name: 'Harbor Literacy Project' },
-          },
-        ],
-      };
-    }
-
     return { data: reviews };
+  }
+
+  async create(projectId: string, data: any) {
+    const review = await this.prisma.review.create({
+      data: {
+        projectId,
+        title: data.title,
+        description: data.description,
+        category: data.category || "DESIGN",
+        status: "SUBMITTED"
+      }
+    });
+    return { data: review };
   }
 }

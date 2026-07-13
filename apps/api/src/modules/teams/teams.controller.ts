@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Patch, Delete, Param, Body, Query } from "@nestjs/common";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { ApiTags, ApiOperation, ApiQuery } from "@nestjs/swagger";
 import { TeamsService } from "./teams.service";
 import type { UserRole } from "@prisma/client";
@@ -23,8 +24,9 @@ export class TeamsController {
     @Query("limit") limit?: number,
     @Query("cohortId") cohortId?: string,
     @Query("search") search?: string,
+    @CurrentUser() user?: any,
   ) {
-    return this.teamsService.findAll({ page, limit, cohortId, search });
+    return this.teamsService.findAll({ page, limit, cohortId, search }, user);
   }
 
   @Get(":id")

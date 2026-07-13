@@ -6,6 +6,7 @@ import { useParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ActivityFeed } from "@/components/activity-feed"
+import { ProjectChat } from "./_components/project-chat"
 
 export default function ProjectOverviewPage() {
   const params = useParams()
@@ -50,6 +51,9 @@ export default function ProjectOverviewPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Project Chat Room */}
+        <ProjectChat projectId={id} />
       </div>
 
       <div className="space-y-6">

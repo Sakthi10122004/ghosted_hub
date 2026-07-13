@@ -12,9 +12,12 @@ import { AuthModule } from "./modules/auth/auth.module";
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { FilesModule } from './modules/files/files.module';
 import { DeploymentsModule } from './modules/deployments/deployments.module';
-
+import { MessagesModule } from './modules/messages/messages.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { InvitationsModule } from './modules/invitations/invitations.module';
+import { DiscoveryModule } from './modules/discovery/discovery.module';
+import { TasksModule } from './modules/tasks/tasks.module';
+import { DeliverablesModule } from './modules/deliverables/deliverables.module';
 
 @Module({
   imports: [
@@ -39,8 +42,12 @@ import { InvitationsModule } from './modules/invitations/invitations.module';
     ReviewsModule,
     FilesModule,
     DeploymentsModule,
+    MessagesModule,
     SettingsModule,
     InvitationsModule,
+    DiscoveryModule,
+    TasksModule,
+    DeliverablesModule,
   ],
 })
 export class AppModule {}

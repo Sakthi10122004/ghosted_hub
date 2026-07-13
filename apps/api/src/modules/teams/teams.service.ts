@@ -10,12 +10,25 @@ export class TeamsService {
     return this.prisma.team.create({ data });
   }
 
-  async findAll(params: { page?: number; limit?: number; cohortId?: string; search?: string }) {
+  async findAll(params: { page?: number; limit?: number; cohortId?: string; search?: string }, user?: any) {
     const { page = 1, limit = 20, cohortId, search } = params;
     const skip = (page - 1) * limit;
+
+    let isStudent = false;
+    if (user?.id) {
+      const dbUser = await this.prisma.user.findUnique({
+        where: { id: user.id },
+        include: { roles: true }
+      });
+      isStudent = dbUser?.roles?.some(r => r.role === "STUDENT" || r.role === "NONPROFIT_REP") || false;
+    }
+
     const where: Prisma.TeamWhereInput = {
       deletedAt: null,
       ...(cohortId && { cohortId }),
+      ...(isStudent && user?.id && {
+        members: { some: { userId: user.id } }
+      }),
       ...(search && {
         name: { contains: search, mode: "insensitive" as const },
       }),

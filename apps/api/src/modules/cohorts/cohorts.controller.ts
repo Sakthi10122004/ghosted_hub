@@ -1,6 +1,7 @@
 import {
   Controller, Get, Post, Patch, Delete, Param, Body, Query,
 } from "@nestjs/common";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { ApiTags, ApiOperation, ApiQuery } from "@nestjs/swagger";
 import { CohortsService } from "./cohorts.service";
 import type { CohortStatus } from "@prisma/client";
@@ -23,8 +24,9 @@ export class CohortsController {
   findAll(
     @Query("page") page?: number, @Query("limit") limit?: number,
     @Query("status") status?: string,
+    @CurrentUser() user?: any,
   ) {
-    return this.cohortsService.findAll({ page, limit, status });
+    return this.cohortsService.findAll({ page, limit, status }, user);
   }
 
   @Get(":id")

@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchApi } from "@/lib/api-client";
-import { authClient } from "@/lib/auth-client";
+import { useUserRole } from "@/hooks/use-user-role";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Search, ShieldAlert, Activity, User, Monitor,
   Clock, ServerCrash, KeyRound
@@ -14,22 +15,22 @@ export default function LogsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState("all");
 
-  const { data: session } = authClient.useSession();
-  const userRole = (session?.user as any)?.role || "student";
-  const isAdmin = userRole === "admin" || userRole === "SUPER_ADMIN";
+  const { isPending, isSuperAdmin } = useUserRole();
 
   const { data: logsData, isLoading } = useQuery({
     queryKey: ["logs"],
     queryFn: () => fetchApi<{ data: any[] }>("/audit"),
-    enabled: isAdmin,
+    enabled: isSuperAdmin,
   });
 
-  if (!isAdmin) {
+  if (isPending) return null;
+
+  if (!isSuperAdmin) {
     return (
       <div className="flex flex-col items-center justify-center h-[70vh]">
-        <ShieldAlert className="w-16 h-16 text-destructive mb-4 opacity-50" />
-        <h1 className="text-2xl font-serif font-bold text-foreground">Access Denied</h1>
-        <p className="text-muted-foreground mt-2">You do not have permission to view system logs.</p>
+        <ShieldAlert className="w-12 h-12 text-muted-foreground mb-4 opacity-50" />
+        <h1 className="text-lg font-semibold text-foreground">Access Denied</h1>
+        <p className="text-sm text-muted-foreground mt-1">You do not have permission to view system logs.</p>
       </div>
     );
   }
@@ -72,114 +73,129 @@ export default function LogsPage() {
   };
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-12 relative z-10">
-      <div className="absolute top-[-5%] left-[-8%] w-[25%] h-[25%] bg-destructive/5 rounded-full blur-3xl -z-10 pointer-events-none" />
-
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-end justify-between bg-card p-6 rounded-3xl shadow-sm border border-border/50">
+      <div className="flex items-center justify-between border-b border-border pb-4">
         <div>
-          <p className="text-[11px] font-bold tracking-widest text-primary uppercase mb-1">Administration</p>
-          <h1 className="text-4xl font-serif font-bold text-foreground tracking-tight">System Logs</h1>
-          <p className="text-muted-foreground mt-1 font-medium">Audit trail of platform activity, authentication, and system events.</p>
-        </div>
-        <div className="flex items-center space-x-3">
-          <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search logs..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2.5 rounded-2xl border-none bg-muted text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 w-64 transition-shadow"
-            />
-          </div>
+          <h1 className="text-xl font-mono font-bold uppercase tracking-widest text-foreground">System Logs</h1>
+          <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mt-1">Audit trail of platform activity, authentication, and system events.</p>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="flex items-center space-x-1.5 p-1.5 bg-muted rounded-2xl w-fit">
-        {[
-          { label: "All Logs", value: "all" },
-          { label: "User Activity", value: "user" },
-          { label: "System Events", value: "system" }
-        ].map((f) => (
-          <button
-            key={f.value}
-            onClick={() => setFilterType(f.value)}
-            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-              filterType === f.value
-                ? "bg-card text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-1">
+          {[
+            { label: "All Logs", value: "all" },
+            { label: "User Activity", value: "user" },
+            { label: "System Events", value: "system" }
+          ].map((f) => (
+            <button
+              key={f.value}
+              onClick={() => setFilterType(f.value)}
+              className={`px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-widest border border-transparent transition-colors ${
+                filterType === f.value
+                  ? "bg-foreground text-background"
+                  : "text-muted-foreground hover:border-border hover:text-foreground"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="SEARCH LOGS..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 h-9 w-64 font-mono text-[11px] uppercase tracking-widest"
+          />
+        </div>
       </div>
 
       {/* Logs Table */}
-      <Card className="bg-card border-none shadow-sm rounded-3xl overflow-hidden">
+      <Card>
         <CardContent className="p-0">
-          <div className="grid grid-cols-[auto_1fr_auto_auto_auto] gap-4 px-6 py-3 border-b border-border/30">
-            <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase w-10 text-center">Type</span>
-            <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">Action</span>
-            <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase w-40">User</span>
-            <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase w-32">IP Address</span>
-            <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase w-32 text-right">Timestamp</span>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted border-b border-border">
+                <tr>
+                  <th className="text-center px-4 py-3 text-[10px] font-mono font-bold uppercase tracking-widest text-muted-foreground w-12 border-r border-border/50">Type</th>
+                  <th className="text-left px-4 py-3 text-[10px] font-mono font-bold uppercase tracking-widest text-muted-foreground border-r border-border/50">Action</th>
+                  <th className="text-left px-4 py-3 text-[10px] font-mono font-bold uppercase tracking-widest text-muted-foreground w-48 border-r border-border/50">User</th>
+                  <th className="text-left px-4 py-3 text-[10px] font-mono font-bold uppercase tracking-widest text-muted-foreground w-32 border-r border-border/50">IP Address</th>
+                  <th className="text-right px-4 py-3 text-[10px] font-mono font-bold uppercase tracking-widest text-muted-foreground w-40">Timestamp</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                      Loading logs...
+                    </td>
+                  </tr>
+                ) : filteredLogs.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-12 text-center">
+                      <Activity className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
+                      <p className="text-sm font-medium text-foreground">No logs found</p>
+                      <p className="text-xs text-muted-foreground mt-1">No logs match your current filter.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredLogs.map((log: any) => {
+                    const Icon = getActionIcon(log.action);
+                    const colorClass = getActionColor(log.action);
+                    
+                    return (
+                      <tr
+                        key={log.id}
+                        className="hover:bg-muted/40 transition-colors"
+                      >
+                        <td className="px-4 py-3">
+                          <div className={`w-8 h-8 rounded-md flex items-center justify-center mx-auto ${colorClass}`}>
+                            <Icon className="w-4 h-4" />
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 border-r border-border/50">
+                          <p className="text-xs font-mono font-bold uppercase tracking-widest text-foreground">{log.action || "Unknown Action"}</p>
+                          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mt-0.5">
+                            {log.entityType ? `${log.entityType} • ` : ""}
+                            {log.entityId || "System"}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            {log.user ? (
+                              <>
+                                <div className="w-5 h-5 rounded bg-secondary flex items-center justify-center text-[9px] font-bold text-foreground">
+                                  {log.user.name?.[0]?.toUpperCase() || "U"}
+                                </div>
+                                <span className="text-xs font-medium text-muted-foreground truncate">{log.user.name}</span>
+                              </>
+                            ) : (
+                              <span className="text-xs text-muted-foreground italic">System</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="text-xs font-mono text-muted-foreground">{log.ipAddress || "—"}</span>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-1.5 text-xs text-muted-foreground">
+                            <Clock className="w-3 h-3" />
+                            {log.createdAt ? new Date(log.createdAt).toLocaleString() : "—"}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
-          
-          {isLoading ? (
-            <div className="p-16 text-center text-muted-foreground font-bold">
-              Loading logs...
-            </div>
-          ) : filteredLogs.length === 0 ? (
-            <div className="p-16 text-center">
-              <Activity className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-muted-foreground font-bold">No logs match your current filter.</p>
-            </div>
-          ) : (
-            filteredLogs.map((log: any, idx: number) => {
-              const Icon = getActionIcon(log.action);
-              const colorClass = getActionColor(log.action);
-              
-              return (
-                <div
-                  key={log.id}
-                  className={`grid grid-cols-[auto_1fr_auto_auto_auto] gap-4 px-6 py-4 items-center hover:bg-muted/30 transition-colors ${
-                    idx < filteredLogs.length - 1 ? "border-b border-border/10" : ""
-                  }`}
-                >
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${colorClass}`}>
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-foreground">{log.action || "Unknown Action"}</p>
-                    <p className="text-xs text-muted-foreground font-medium mt-0.5">
-                      {log.entityType ? `${log.entityType} • ` : ""}
-                      {log.entityId || "System"}
-                    </p>
-                  </div>
-                  <div className="w-40 flex items-center gap-2">
-                    {log.user ? (
-                      <>
-                        <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center text-[9px] font-bold text-foreground">
-                          {log.user.name?.[0]?.toUpperCase() || "U"}
-                        </div>
-                        <span className="text-xs text-muted-foreground font-medium truncate">{log.user.name}</span>
-                      </>
-                    ) : (
-                      <span className="text-xs text-muted-foreground italic font-medium">System</span>
-                    )}
-                  </div>
-                  <span className="text-xs font-mono text-muted-foreground w-32">{log.ipAddress || "—"}</span>
-                  <div className="w-32 text-right flex items-center justify-end gap-1.5 text-xs text-muted-foreground font-medium">
-                    <Clock className="w-3 h-3" />
-                    {log.createdAt ? new Date(log.createdAt).toLocaleString() : "—"}
-                  </div>
-                </div>
-              );
-            })
-          )}
         </CardContent>
       </Card>
     </div>

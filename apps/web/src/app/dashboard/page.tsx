@@ -3,27 +3,47 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchApi } from "@/lib/api-client";
 import { Card, CardContent } from "@/components/ui/card";
-import { Bell, Search, Plus } from "lucide-react";
+import { Plus, FolderKanban, Users, Building2, Layers } from "lucide-react";
 import Link from "next/link";
-import { authClient } from "@/lib/auth-client";
+import { Button } from "@/components/ui/button";
+import { useUserRole } from "@/hooks/use-user-role";
 
 export default function DashboardPage() {
-  const { data: session } = authClient.useSession();
-  const userName = session?.user?.name?.split(" ")[0] || "Maya";
+  const { session, isAdmin, isStudent, isPending: rolePending } = useUserRole();
+  const userName = session?.user?.name?.split(" ")[0] || "User";
 
-  // Fetch projects
-  const { data: projectsData, isLoading } = useQuery({
+  // Fetch projects (backend already scopes for students)
+  const { data: projectsData, isLoading: projectsLoading } = useQuery({
     queryKey: ["dashboard-projects"],
-    queryFn: () => fetchApi<{ data: any[]; meta: any }>("/projects?limit=5"),
+    queryFn: () => fetchApi<{ data: any[]; meta: any }>("/projects?limit=10"),
+  });
+
+  // Admin-only: fetch real counts
+  const { data: teamsData } = useQuery({
+    queryKey: ["dashboard-teams"],
+    queryFn: () => fetchApi<{ data: any[] }>("/teams"),
+    enabled: isAdmin,
+  });
+
+  const { data: cohortsData } = useQuery({
+    queryKey: ["dashboard-cohorts"],
+    queryFn: () => fetchApi<{ data: any[] }>("/cohorts"),
+    enabled: isAdmin,
+  });
+
+  const { data: nonprofitsData } = useQuery({
+    queryKey: ["dashboard-nonprofits"],
+    queryFn: () => fetchApi<{ data: any[] }>("/nonprofits"),
+    enabled: isAdmin,
   });
 
   const projects = projectsData?.data || [];
-  const totalProjects = projectsData?.meta?.total || 0;
+  const totalProjects = projects.length;
+  const totalTeams = teamsData?.data?.length || 0;
+  const totalCohorts = cohortsData?.data?.length || 0;
+  const totalNonprofits = nonprofitsData?.data?.length || 0;
 
-  // Compute mock stats if actual dashboard stats endpoint doesn't exist
-  const activeProjects = totalProjects;
-  const pendingReviews = Math.floor(activeProjects * 0.4);
-  const nonprofitsOnboarding = Math.max(0, 10 - activeProjects);
+  const isLoading = rolePending || projectsLoading;
 
   // Helper to get initials
   const getInitials = (name: string) => {
@@ -37,170 +57,190 @@ export default function DashboardPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "BLOCKED": return "bg-red-100 text-red-700 marker-red-500";
-      case "CANCELLED": return "bg-gray-100 text-gray-700 marker-gray-500";
-      case "COMPLETED": return "bg-emerald-100 text-emerald-700 marker-emerald-500";
-      case "ACTIVE":
-      default: return "bg-emerald-100 text-emerald-700 marker-emerald-500";
+      case "BLOCKED": return "bg-destructive/10 text-destructive";
+      case "CANCELLED": return "bg-muted text-muted-foreground";
+      case "COMPLETED": return "bg-status-on-track/10 text-status-on-track";
+      default: return "bg-status-on-track/10 text-status-on-track";
     }
   };
 
+  const getStageInfo = (status: string) => {
+    const stages: Record<string, { label: string; filled: number }> = {
+      CREATED: { label: "Created", filled: 0 },
+      DISCOVERY: { label: "Discovery", filled: 1 },
+      DEVELOPMENT: { label: "Development", filled: 2 },
+      INTERNAL_REVIEW: { label: "Internal Review", filled: 2 },
+      REVISION: { label: "Revision", filled: 2 },
+      NONPROFIT_REVIEW: { label: "NPO Review", filled: 3 },
+      TRAINING: { label: "Training", filled: 3 },
+      FINAL_DELIVERABLES: { label: "Final Deliverables", filled: 3 },
+      DEPLOYMENT_DECISION: { label: "Deployment", filled: 4 },
+      COMPLETED: { label: "Completed", filled: 4 },
+      ARCHIVED: { label: "Archived", filled: 4 },
+    };
+    return stages[status] || { label: status, filled: 0 };
+  };
+
+  if (isLoading) {
+    return <div className="h-[60vh] flex items-center justify-center text-muted-foreground font-mono text-sm uppercase tracking-widest">Loading workspace...</div>;
+  }
+
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-12 relative z-10">
-      {/* Decorative blurred blobs for background vibe */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 rounded-full blur-3xl -z-10 mix-blend-multiply pointer-events-none"></div>
-      <div className="absolute top-[20%] right-[-5%] w-[30%] h-[30%] bg-secondary rounded-full blur-3xl -z-10 mix-blend-multiply pointer-events-none"></div>
-
+    <div className="space-y-6">
       {/* Header Area */}
-      <div className="flex items-end justify-between bg-card p-6 rounded-3xl shadow-sm border border-border/50">
+      <div className="flex items-center justify-between border-b border-border pb-4">
         <div>
-          <p className="text-[11px] font-bold tracking-widest text-primary uppercase mb-1">
-            {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+          <h1 className="text-xl font-mono font-bold uppercase tracking-widest text-foreground">
+            {isStudent ? `Welcome, ${userName}` : `Good morning, ${userName}`}
+          </h1>
+          <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mt-1">
+            {isStudent ? "Your Team // Your Project" : "Status Report // Active Modules"}
           </p>
-          <h1 className="text-4xl font-serif font-bold text-foreground tracking-tight">Good morning, {userName}</h1>
         </div>
-        
-        <div className="flex items-center space-x-4">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input 
-              type="text" 
-              placeholder="Search projects..." 
-              className="pl-11 pr-4 py-3 rounded-2xl border-none bg-muted text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 w-64 transition-shadow"
-            />
-          </div>
-          <button className="relative p-3 rounded-2xl bg-muted text-foreground hover:bg-secondary transition-colors">
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-primary rounded-full border-2 border-white"></span>
-          </button>
-          <button className="flex items-center space-x-2 bg-foreground hover:bg-foreground/90 text-background px-6 py-3 rounded-2xl text-sm font-bold shadow-lg shadow-foreground/20 transition-all hover:scale-[1.02]">
-            <Plus className="w-4 h-4" />
-            <span>New Project</span>
-          </button>
-        </div>
+        {isAdmin && (
+          <Button asChild>
+            <Link href="/dashboard/projects">
+              <Plus className="w-4 h-4 mr-2" />
+              NEW PROJECT
+            </Link>
+          </Button>
+        )}
       </div>
 
+      {/* Admin Metrics Row — real data */}
+      {isAdmin && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[10px] font-mono font-bold tracking-[0.2em] text-muted-foreground uppercase">Active Projects</p>
+                <div className="p-2 border border-border">
+                  <FolderKanban className="w-4 h-4 text-primary" />
+                </div>
+              </div>
+              <p className="text-2xl font-semibold text-foreground">{totalProjects}</p>
+              <p className="text-xs text-muted-foreground mt-1">across all cohorts</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[10px] font-mono font-bold tracking-[0.2em] text-muted-foreground uppercase">Student Teams</p>
+                <div className="p-2 border border-border">
+                  <Users className="w-4 h-4 text-primary" />
+                </div>
+              </div>
+              <p className="text-2xl font-semibold text-foreground">{totalTeams}</p>
+              <p className="text-xs text-muted-foreground mt-1">registered teams</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[10px] font-mono font-bold tracking-[0.2em] text-muted-foreground uppercase">Cohorts</p>
+                <div className="p-2 border border-border">
+                  <Layers className="w-4 h-4 text-primary" />
+                </div>
+              </div>
+              <p className="text-2xl font-semibold text-foreground">{totalCohorts}</p>
+              <p className="text-xs text-muted-foreground mt-1">program cycles</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[10px] font-mono font-bold tracking-[0.2em] text-muted-foreground uppercase">Nonprofits</p>
+                <div className="p-2 border border-border">
+                  <Building2 className="w-4 h-4 text-primary" />
+                </div>
+              </div>
+              <p className="text-2xl font-semibold text-foreground">{totalNonprofits}</p>
+              <p className="text-xs text-muted-foreground mt-1">partner organizations</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
-      {/* Metrics Row */}
-      <div className="grid md:grid-cols-4 gap-5">
-        <Card className="bg-card border-none shadow-sm rounded-3xl overflow-hidden relative group hover:shadow-md transition-all">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-          <CardContent className="p-7 relative z-10">
-            <p className="text-sm font-bold text-muted-foreground mb-2">Active Projects</p>
-            <p className="text-5xl font-serif font-bold text-foreground mb-3">{isLoading ? "-" : activeProjects}</p>
-            <p className="text-xs font-bold text-status-on-track flex items-center bg-status-on-track/10 w-fit px-2 py-1 rounded-md">
-              ↑ 4 since last cohort
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="bg-card border-none shadow-sm rounded-3xl overflow-hidden relative group hover:shadow-md transition-all">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-          <CardContent className="p-7 relative z-10">
-            <p className="text-sm font-bold text-muted-foreground mb-2">Pending Reviews</p>
-            <p className="text-5xl font-serif font-bold text-foreground mb-3">{isLoading ? "-" : pendingReviews}</p>
-            <p className="text-xs font-bold text-primary flex items-center bg-primary/10 w-fit px-2 py-1 rounded-md">
-              3 assigned to you
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="bg-card border-none shadow-sm rounded-3xl overflow-hidden relative group hover:shadow-md transition-all">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-          <CardContent className="p-7 relative z-10">
-            <p className="text-sm font-bold text-muted-foreground mb-2">Avg. Cycle Time</p>
-            <p className="text-5xl font-serif font-bold text-foreground mb-3">18 <span className="text-xl font-sans font-medium text-muted-foreground">days</span></p>
-            <p className="text-xs font-bold text-status-on-track flex items-center bg-status-on-track/10 w-fit px-2 py-1 rounded-md">
-              ↓ 2 days vs. Cohort 7
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="bg-card border-none shadow-sm rounded-3xl overflow-hidden relative group hover:shadow-md transition-all">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-          <CardContent className="p-7 relative z-10">
-            <p className="text-sm font-bold text-muted-foreground mb-2">Nonprofits Onboarding</p>
-            <p className="text-5xl font-serif font-bold text-foreground mb-3">{isLoading ? "-" : nonprofitsOnboarding}</p>
-            <p className="text-xs font-bold text-status-attention flex items-center bg-status-attention/10 w-fit px-2 py-1 rounded-md">
-              2 awaiting kickoff call
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Project Index */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between border-b border-border pb-2">
+          <h2 className="text-sm font-mono font-bold uppercase tracking-widest text-foreground">
+            {isStudent ? "My Project" : "Project Index"}
+          </h2>
+        </div>
 
-      {/* Main Split Layout */}
-      <div className="grid lg:grid-cols-3 gap-8">
-        
-        {/* Your Projects */}
-        <div className="lg:col-span-3 space-y-5">
-          <div className="flex items-center justify-between mb-4 bg-card p-4 rounded-2xl shadow-sm">
-            <h2 className="text-xl font-serif font-bold text-foreground px-2">Your Projects</h2>
-            <div className="flex items-center space-x-1.5 text-sm p-1 bg-muted rounded-xl">
-              <button className="px-4 py-1.5 rounded-lg bg-card text-foreground font-bold shadow-sm">All</button>
-              <button className="px-4 py-1.5 rounded-lg text-muted-foreground hover:text-foreground font-bold transition-colors">Discovery</button>
-              <button className="px-4 py-1.5 rounded-lg text-muted-foreground hover:text-foreground font-bold transition-colors">Build</button>
-              <button className="px-4 py-1.5 rounded-lg text-muted-foreground hover:text-foreground font-bold transition-colors">Review</button>
-              <button className="px-4 py-1.5 rounded-lg text-muted-foreground hover:text-foreground font-bold transition-colors">Launch</button>
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted border-b border-border">
+                  <tr>
+                    <th className="text-left px-4 py-3 text-[10px] font-mono font-bold uppercase tracking-widest text-foreground border-r border-border/50">Project Name</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-mono font-bold uppercase tracking-widest text-foreground border-r border-border/50">Stage</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-mono font-bold uppercase tracking-widest text-foreground border-r border-border/50">Team</th>
+                    <th className="text-right px-4 py-3 text-[10px] font-mono font-bold uppercase tracking-widest text-foreground">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {projects.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="p-8 text-center text-muted-foreground text-sm">
+                        {isStudent ? "You are not assigned to any projects yet." : "No projects found."}
+                      </td>
+                    </tr>
+                  ) : (
+                    projects.map((project) => {
+                      const stage = getStageInfo(project.status);
+                      return (
+                        <tr key={project.id} className="hover:bg-muted/50 transition-colors group relative">
+                          <td className="px-4 py-4 border-r border-border/50">
+                            <Link href={`/dashboard/projects/${project.id}`} className="absolute inset-0 z-10" />
+                            <div className="font-semibold text-foreground group-hover:text-primary transition-colors">{project.name}</div>
+                            <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mt-1">{project.nonprofit?.name || "Unassigned NPO"}</div>
+                          </td>
+                          <td className="px-4 py-4 w-[280px] border-r border-border/50">
+                            <div className="flex flex-col gap-2 mt-1 relative z-20">
+                              <div className="flex gap-1 w-full">
+                                {[1, 2, 3, 4].map((i) => (
+                                  <div key={i} className={`h-1 flex-1 ${i <= stage.filled ? "bg-primary" : "bg-muted"}`}></div>
+                                ))}
+                              </div>
+                              <span className="text-[10px] font-mono font-bold text-muted-foreground uppercase tracking-widest">{stage.label}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 border-r border-border/50">
+                            <div className="flex items-center gap-2">
+                              <div className="flex -space-x-2">
+                                {project.team?.members?.slice(0, 3).map((member: any, i: number) => (
+                                  <div key={member.user.id} className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-medium border border-card shadow-sm ${
+                                    i === 0 ? 'bg-primary/10 text-primary' : 'bg-secondary text-secondary-foreground'
+                                  }`}>
+                                    {getInitials(member.user.name)}
+                                  </div>
+                                ))}
+                                {(!project.team?.members || project.team.members.length === 0) && (
+                                  <span className="text-xs text-muted-foreground">Unassigned</span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 text-right">
+                            <span className={`inline-flex items-center px-2 py-1 text-[10px] font-mono font-bold uppercase tracking-widest border border-border ${getStatusColor(project.status)}`}>
+                              {project.status === "CREATED" ? "On Track" : project.status?.replace(/_/g, " ")}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
             </div>
-          </div>
-
-          <div className="space-y-4">
-            {isLoading ? (
-              <div className="p-12 text-center text-muted-foreground bg-card rounded-3xl font-bold">Loading projects...</div>
-            ) : projects.length === 0 ? (
-              <div className="p-12 text-center text-muted-foreground bg-card rounded-3xl font-bold">No projects found.</div>
-            ) : (
-              projects.map((project) => (
-                <Link href={`/dashboard/projects/${project.id}`} key={project.id} className="block group">
-                  <div className="bg-card rounded-3xl p-6 shadow-sm border border-border/30 flex items-center gap-6 group-hover:shadow-lg group-hover:border-primary/20 transition-all duration-300 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-full -z-10 group-hover:bg-primary/10 transition-colors"></div>
-                    <div className="w-64 flex-shrink-0">
-                      <h3 className="font-serif font-bold text-xl leading-tight text-foreground group-hover:text-primary transition-colors">{project.name}</h3>
-                      <p className="text-sm font-medium text-muted-foreground mt-1">Nonprofit · {project.nonprofit?.name || "Unassigned"}</p>
-                    </div>
-                    <div className="flex-1 flex flex-col justify-center">
-                      <div className="flex text-[10px] tracking-widest font-bold text-muted-foreground uppercase mb-2 space-x-1">
-                        <span className="text-foreground">DISCOVERY</span> <span className="opacity-50">·</span>
-                        <span>BUILD</span> <span className="opacity-50">·</span>
-                        <span>REVIEW</span> <span className="opacity-50">·</span>
-                        <span>LAUNCH</span>
-                      </div>
-                      <div className="flex space-x-1.5 mb-2">
-                        <div className="h-2 flex-1 bg-gradient-to-r from-primary to-accent rounded-full shadow-inner"></div>
-                        <div className="h-2 flex-1 bg-muted rounded-full"></div>
-                        <div className="h-2 flex-1 bg-muted rounded-full"></div>
-                        <div className="h-2 flex-1 bg-muted rounded-full"></div>
-                      </div>
-                      <span className="text-xs font-bold text-foreground bg-muted w-fit px-2 py-0.5 rounded-md">Discovery — Initial</span>
-                    </div>
-                    <div className="flex items-center space-x-3 w-48 justify-end">
-                      <div className="flex -space-x-3">
-                        {project.team?.members?.slice(0, 3).map((member: any, i: number) => (
-                          <div key={member.user.id} className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-card z-${30-i*10} shadow-sm ${
-                            i === 0 ? 'bg-primary/20 text-primary' : i === 1 ? 'bg-secondary text-foreground' : 'bg-status-on-track/20 text-status-on-track'
-                          }`}>
-                            {getInitials(member.user.name)}
-                          </div>
-                        ))}
-                        {(!project.team?.members || project.team.members.length === 0) && (
-                           <div className="text-xs text-muted-foreground italic font-medium">No team</div>
-                        )}
-                      </div>
-                      <span className="text-xs text-muted-foreground font-bold truncate w-24 text-right">
-                        {project.team?.name || "Unassigned"}
-                      </span>
-                    </div>
-                    <div className="w-28 flex justify-end">
-                      <span className={`inline-flex items-center px-3 py-1.5 rounded-xl text-[11px] font-bold uppercase tracking-wider ${getStatusColor(project.status).split(' ')[0]} ${getStatusColor(project.status).split(' ')[1]}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full mr-2 ${getStatusColor(project.status).split(' ')[2]?.replace('marker-', 'bg-') ?? ''}`}></span> 
-                        {project.status === "ACTIVE" ? "On Track" : project.status}
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-              ))
-            )}
-          </div>
-        </div>
-
-
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

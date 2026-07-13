@@ -10,12 +10,17 @@ export class NonprofitsService {
     return this.prisma.nonprofit.create({ data });
   }
 
-  async findAll(params: { page?: number; limit?: number; search?: string }) {
+  async findAll(params: { page?: number; limit?: number; search?: string }, user?: any) {
     const { page = 1, limit = 20, search } = params;
     const skip = (page - 1) * limit;
 
+    const isStudent = user?.roles?.some((r: any) => r.role === "STUDENT") || user?.role === "student" || user?.role === "STUDENT";
+
     const where: Prisma.NonprofitWhereInput = {
       deletedAt: null,
+      ...(isStudent && user?.id && {
+        projects: { some: { team: { members: { some: { userId: user.id } } } } }
+      }),
       ...(search && {
         OR: [
           { name: { contains: search, mode: "insensitive" } },

@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
+import { AuditService } from "../audit/audit.service";
 import type { Prisma, ProjectStatus } from "@prisma/client";
 
 @Injectable()
 export class ProjectsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditService: AuditService
+  ) {}
 
   /** Create a project — typically called by the pairing engine */
   async create(data: {
@@ -32,27 +36,58 @@ export class ProjectsService {
       },
     });
 
+    await this.auditService.createLog({
+      action: 'project.create',
+      entityType: 'Project',
+      entityId: project.id,
+      metadata: { name: project.name, cohortId: project.cohortId }
+    });
+
     return project;
   }
 
   async findAll(params: {
     page?: number; limit?: number; cohortId?: string;
     status?: string; search?: string;
-  }) {
+  }, user?: any) {
     const { page = 1, limit = 20, cohortId, status, search } = params;
     const skip = (page - 1) * limit;
+
+    let isStudent = false;
+    let isNpoRep = false;
+    let npoIds: string[] = [];
+
+    if (user?.id) {
+      const dbUser = await this.prisma.user.findUnique({
+        where: { id: user.id },
+        include: { roles: true, nonprofitRep: true }
+      });
+      isStudent = dbUser?.roles?.some(r => r.role === "STUDENT") || false;
+      isNpoRep = dbUser?.roles?.some(r => r.role === "NONPROFIT_REP") || false;
+      if (isNpoRep && dbUser?.nonprofitRep) {
+        npoIds = dbUser.nonprofitRep.map(n => n.nonprofitId);
+      }
+    }
+
+    const accessOr: Prisma.ProjectWhereInput[] = [];
+    if (isStudent && user?.id) accessOr.push({ team: { members: { some: { userId: user.id } } } });
+    if (isNpoRep && npoIds.length > 0) accessOr.push({ nonprofitId: { in: npoIds } });
+
+    const searchOr: Prisma.ProjectWhereInput[] = search ? [
+      { name: { contains: search, mode: "insensitive" } },
+      { nonprofit: { name: { contains: search, mode: "insensitive" } } },
+    ] : [];
 
     const where: Prisma.ProjectWhereInput = {
       deletedAt: null,
       ...(cohortId && { cohortId }),
       ...(status && { status: status as ProjectStatus }),
-      ...(search && {
-        OR: [
-          { name: { contains: search, mode: "insensitive" } },
-          { nonprofit: { name: { contains: search, mode: "insensitive" } } },
-        ],
-      }),
+      ...(accessOr.length > 0 && { OR: accessOr }),
     };
+
+    if (searchOr.length > 0) {
+      where.AND = [{ OR: searchOr }];
+    }
 
     const [projects, total] = await Promise.all([
       this.prisma.project.findMany({
@@ -85,9 +120,35 @@ export class ProjectsService {
     return { data: projects, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } };
   }
 
-  async findById(id: string) {
-    const project = await this.prisma.project.findUnique({
-      where: { id, deletedAt: null },
+  async findById(id: string, user?: any) {
+    let isStudent = false;
+    let isNpoRep = false;
+    let npoIds: string[] = [];
+
+    if (user?.id) {
+      const dbUser = await this.prisma.user.findUnique({
+        where: { id: user.id },
+        include: { roles: true, nonprofitRep: true }
+      });
+      isStudent = dbUser?.roles?.some(r => r.role === "STUDENT") || false;
+      isNpoRep = dbUser?.roles?.some(r => r.role === "NONPROFIT_REP") || false;
+      if (isNpoRep && dbUser?.nonprofitRep) {
+        npoIds = dbUser.nonprofitRep.map(n => n.nonprofitId);
+      }
+    }
+
+    const accessOr: Prisma.ProjectWhereInput[] = [];
+    if (isStudent && user?.id) accessOr.push({ team: { members: { some: { userId: user.id } } } });
+    if (isNpoRep && npoIds.length > 0) accessOr.push({ nonprofitId: { in: npoIds } });
+
+    const where: Prisma.ProjectWhereInput = { 
+      id, 
+      deletedAt: null,
+      ...(accessOr.length > 0 && { OR: accessOr }),
+    };
+
+    const project = await this.prisma.project.findFirst({
+      where,
       include: {
         cohort: { select: { id: true, name: true, status: true } },
         team: {
@@ -109,12 +170,12 @@ export class ProjectsService {
   }
 
   async update(id: string, data: Prisma.ProjectUpdateInput) {
-    await this.findById(id);
+    await this.findById(id); // Access check happens here if we passed user, but updates are admin only via roles guard usually
     return this.prisma.project.update({ where: { id }, data });
   }
 
   async updateStatus(id: string, status: ProjectStatus) {
-    const project = await this.findById(id);
+    const project = await this.findById(id); // Admin only action
     const updated = await this.prisma.project.update({
       where: { id }, data: { status },
     });
@@ -126,6 +187,14 @@ export class ProjectsService {
         metadata: { from: project.status, to: status },
       },
     });
+
+    await this.auditService.createLog({
+      action: 'project.status_change',
+      entityType: 'Project',
+      entityId: id,
+      metadata: { from: project.status, to: status }
+    });
+
     return updated;
   }
 

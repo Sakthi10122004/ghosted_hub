@@ -1,14 +1,19 @@
+"use client";
+
+import { use } from "react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { Check } from "lucide-react"
 
-export default async function ProjectWorkspaceLayout({
+export default function ProjectWorkspaceLayout({
   children,
   params,
 }: {
   children: React.ReactNode
   params: Promise<{ id: string }>
 }) {
-  const { id: projectId } = await params
+  const { id: projectId } = use(params)
+  const pathname = usePathname()
 
   const tabs = [
     { name: "Overview", href: `/dashboard/projects/${projectId}` },
@@ -24,52 +29,57 @@ export default async function ProjectWorkspaceLayout({
   const stages = ["Discovery", "Build", "Review", "Launch", "Closed"];
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
+    <div className="space-y-6">
       {/* Signature Element: Persistent Lifecycle Rail */}
-      <div className="bg-card border border-border rounded-lg p-4 shadow-sm">
+      <div className="bg-card border border-border p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2 w-full">
-            {stages.map((stage, index) => (
-              <div key={stage} className="flex items-center flex-1">
-                <div className={`flex items-center space-x-2 ${index <= currentStage ? "text-foreground" : "text-muted-foreground"}`}>
-                  <div className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold font-mono
-                    ${index < currentStage ? "bg-status-on-track text-white" : 
-                      index === currentStage ? "bg-primary text-primary-foreground ring-2 ring-primary/20" : 
-                      "bg-muted text-muted-foreground"}`}
-                  >
-                    {index < currentStage ? <Check className="w-3 h-3" /> : index + 1}
+            {stages.map((stage, index) => {
+              const isPast = index < currentStage;
+              const isCurrent = index === currentStage;
+              
+              return (
+                <div key={stage} className="flex items-center flex-1">
+                  <div className={`flex items-center space-x-2 ${isPast || isCurrent ? "text-foreground" : "text-muted-foreground"}`}>
+                    <div className={`flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold border border-border
+                      ${isPast ? "bg-foreground text-background" : 
+                        isCurrent ? "bg-primary text-primary-foreground border-primary" : 
+                        "bg-transparent text-muted-foreground"}`}
+                    >
+                      {isPast ? <Check className="w-3 h-3" /> : index + 1}
+                    </div>
+                    <span className={`text-[10px] font-mono uppercase tracking-widest ${isCurrent ? "text-primary font-bold" : ""}`}>
+                      {stage}
+                    </span>
                   </div>
-                  <span className={`text-sm font-medium font-heading ${index === currentStage ? "text-primary" : ""}`}>
-                    {stage}
-                  </span>
+                  {index < stages.length - 1 && (
+                    <div className={`flex-1 h-0.5 mx-4 rounded-full ${isPast ? "bg-status-on-track" : "bg-muted"}`} />
+                  )}
                 </div>
-                {index < stages.length - 1 && (
-                  <div className={`flex-1 h-px mx-4 ${index < currentStage ? "bg-status-on-track" : "bg-border"}`} />
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
 
-      <div className="flex flex-col space-y-2">
-        <h1 className="text-4xl font-heading font-semibold tracking-tight">Green Earth Initiative</h1>
-        <p className="text-lg text-muted-foreground font-sans">
+      <div className="flex flex-col space-y-1">
+        <h1 className="text-xl font-mono font-bold uppercase tracking-widest text-foreground">Green Earth Initiative</h1>
+        <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
           Workspace for the Alpha Team and Green Earth Foundation.
         </p>
       </div>
 
-      <div className="border-b border-border">
-        <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+      <div className="border-b border-border/60">
+        <nav className="-mb-px flex space-x-6" aria-label="Tabs">
           {tabs.map((tab) => {
-            const isActive = tab.name === "Overview"; // Simplified for layout demo, should match pathname
+            const isActive = pathname === tab.href;
             return (
               <Link
                 key={tab.name}
                 href={tab.href}
-                className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors
+                className={`whitespace-nowrap py-3 px-1 border-b-2 text-[10px] font-mono font-bold uppercase tracking-widest transition-colors
                   ${isActive 
-                    ? "border-primary text-primary" 
+                    ? "border-foreground text-foreground" 
                     : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
                   }`}
               >

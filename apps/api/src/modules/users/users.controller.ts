@@ -6,6 +6,7 @@ import {
   Param,
   Body,
   Query,
+  Post,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiQuery } from "@nestjs/swagger";
 import { UsersService } from "./users.service";
@@ -46,5 +47,11 @@ export class UsersController {
   @ApiOperation({ summary: "Soft delete a user" })
   remove(@Param("id") id: string) {
     return this.usersService.softDelete(id);
+  }
+
+  @Post(":id/reset-password")
+  @ApiOperation({ summary: "Reset user password" })
+  resetPassword(@Param("id") id: string, @Body() data: { password: string }) {
+    return this.usersService.resetPassword(id, data.password);
   }
 }

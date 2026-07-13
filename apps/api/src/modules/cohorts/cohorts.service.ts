@@ -15,13 +15,18 @@ export class CohortsService {
     return this.prisma.cohort.create({ data });
   }
 
-  async findAll(params: { page?: number; limit?: number; status?: string }) {
+  async findAll(params: { page?: number; limit?: number; status?: string }, user?: any) {
     const { page = 1, limit = 20, status } = params;
     const skip = (page - 1) * limit;
+
+    const isStudent = user?.roles?.some((r: any) => r.role === "STUDENT") || user?.role === "student" || user?.role === "STUDENT";
 
     const where: Prisma.CohortWhereInput = {
       deletedAt: null,
       ...(status && { status: status as CohortStatus }),
+      ...(isStudent && user?.id && {
+        teams: { some: { members: { some: { userId: user.id } } } }
+      }),
     };
 
     const [cohorts, total] = await Promise.all([

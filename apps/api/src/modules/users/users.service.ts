@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import type { Prisma } from "@prisma/client";
+import * as bcrypt from "bcryptjs";
 
 @Injectable()
 export class UsersService {
@@ -69,9 +70,26 @@ export class UsersService {
     return user;
   }
 
-  async update(id: string, data: Prisma.UserUpdateInput) {
+  async update(id: string, data: any) {
     await this.findById(id); // Ensure exists
-    return this.prisma.user.update({ where: { id }, data });
+
+    const { role, ...userData } = data;
+
+    if (role) {
+      // Update the user's global role (where cohortId is null)
+      await this.prisma.userRoleAssignment.deleteMany({
+        where: { userId: id, cohortId: null },
+      });
+      await this.prisma.userRoleAssignment.create({
+        data: { userId: id, role: role },
+      });
+    }
+
+    if (Object.keys(userData).length > 0) {
+      return this.prisma.user.update({ where: { id }, data: userData });
+    }
+
+    return this.findById(id);
   }
 
   async softDelete(id: string) {
@@ -80,5 +98,32 @@ export class UsersService {
       where: { id },
       data: { deletedAt: new Date(), isActive: false },
     });
+  }
+
+  async resetPassword(id: string, newPassword: string) {
+    const user = await this.findById(id);
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    
+    // Check if account exists
+    const account = await this.prisma.account.findFirst({
+      where: { userId: id }
+    });
+
+    if (account) {
+      return this.prisma.account.update({
+        where: { id: account.id },
+        data: { password: passwordHash },
+      });
+    } else {
+      // Create a local account if none exists (for better-auth)
+      return this.prisma.account.create({
+        data: {
+          userId: id,
+          accountId: id,
+          providerId: "credential",
+          password: passwordHash,
+        }
+      });
+    }
   }
 }

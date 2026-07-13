@@ -7,8 +7,11 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { CreateProjectDialog } from "./_components/create-project-dialog"
+import { useUserRole } from "@/hooks/use-user-role"
 
 export default function ProjectsPage() {
+  const { isAdmin } = useUserRole()
   const { data, isLoading } = useQuery({
     queryKey: ["projects"],
     queryFn: () => fetchApi<{ data: any[] }>("/projects"),
@@ -21,6 +24,7 @@ export default function ProjectsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
           <p className="text-muted-foreground">Manage website builds from discovery to deployment.</p>
         </div>
+        {isAdmin && <CreateProjectDialog />}
       </div>
 
       <Card>

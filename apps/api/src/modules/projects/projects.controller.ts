@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Patch, Param, Body, Query } from "@nestjs/common";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { ApiTags, ApiOperation, ApiQuery } from "@nestjs/swagger";
 import { ProjectsService } from "./projects.service";
 import type { ProjectStatus } from "@prisma/client";
@@ -22,13 +23,14 @@ export class ProjectsController {
     @Query("page") page?: number, @Query("limit") limit?: number,
     @Query("cohortId") cohortId?: string, @Query("status") status?: string,
     @Query("search") search?: string,
+    @CurrentUser() user?: any,
   ) {
-    return this.projectsService.findAll({ page, limit, cohortId, status, search });
+    return this.projectsService.findAll({ page, limit, cohortId, status, search }, user);
   }
 
   @Get(":id")
   @ApiOperation({ summary: "Get project by ID (full workspace)" })
-  findOne(@Param("id") id: string) { return this.projectsService.findById(id); }
+  findOne(@Param("id") id: string, @CurrentUser() user?: any) { return this.projectsService.findById(id, user); }
 
   @Patch(":id")
   @ApiOperation({ summary: "Update project" })
