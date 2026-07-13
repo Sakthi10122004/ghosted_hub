@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ChevronRight, Check } from "lucide-react"
+import { Check } from "lucide-react"
 
 export default async function ProjectWorkspaceLayout({
   children,

@@ -5,7 +5,7 @@ import { fetchApi } from "@/lib/api-client"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Building2, PlusCircle } from "lucide-react"
+import { Building2 } from "lucide-react"
 import { CreateNonprofitDialog } from "./_components/create-nonprofit-dialog"
 
 export default function NonprofitsPage() {

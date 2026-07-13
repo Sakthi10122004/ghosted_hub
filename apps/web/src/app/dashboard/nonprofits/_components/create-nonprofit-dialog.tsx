@@ -16,15 +16,23 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 export function CreateNonprofitDialog() {
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    mission: "",
+    vision: "",
+    websiteUrl: "",
+    city: "",
+    country: "",
+  });
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: (newNonprofit: { name: string; websiteUrl?: string }) => {
+    mutationFn: (newNonprofit: any) => {
       return fetchApi("/nonprofits", {
         method: "POST",
         body: JSON.stringify(newNonprofit),
@@ -33,15 +41,26 @@ export function CreateNonprofitDialog() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["nonprofits"] });
       setOpen(false);
-      setName("");
-      setWebsiteUrl("");
+      setFormData({
+        name: "",
+        description: "",
+        mission: "",
+        vision: "",
+        websiteUrl: "",
+        city: "",
+        country: "",
+      });
     },
   });
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({ ...formData, [e.target.id]: e.target.value });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
-    mutation.mutate({ name, websiteUrl });
+    if (!formData.name.trim()) return;
+    mutation.mutate(formData);
   };
 
   return (
@@ -52,7 +71,7 @@ export function CreateNonprofitDialog() {
           New Nonprofit
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] rounded-3xl p-8 border-border/50 shadow-xl">
+      <DialogContent className="sm:max-w-[600px] rounded-3xl p-8 border-border/50 shadow-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-serif text-2xl font-bold text-foreground">Add Nonprofit</DialogTitle>
           <DialogDescription className="text-muted-foreground font-medium">
@@ -60,32 +79,87 @@ export function CreateNonprofitDialog() {
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
-          <div className="space-y-3">
-            <Label htmlFor="name" className="text-sm font-bold text-foreground">
-              Organization Name
-            </Label>
-            <Input
-              id="name"
-              placeholder="e.g. Wildlife Trust"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="rounded-xl border-border bg-muted/50 focus-visible:ring-primary h-12 px-4"
-              required
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-3 col-span-2">
+              <Label htmlFor="name" className="text-sm font-bold text-foreground">Organization Name *</Label>
+              <Input
+                id="name"
+                placeholder="e.g. Wildlife Trust"
+                value={formData.name}
+                onChange={handleChange}
+                className="rounded-xl border-border bg-muted/50 focus-visible:ring-primary h-12 px-4"
+                required
+              />
+            </div>
+            
+            <div className="space-y-3 col-span-2">
+              <Label htmlFor="description" className="text-sm font-bold text-foreground">Description</Label>
+              <Textarea
+                id="description"
+                placeholder="Brief description of the organization"
+                value={formData.description}
+                onChange={handleChange}
+                className="rounded-xl border-border bg-muted/50 focus-visible:ring-primary px-4 py-3 resize-none h-24"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <Label htmlFor="mission" className="text-sm font-bold text-foreground">Mission</Label>
+              <Input
+                id="mission"
+                placeholder="Organization mission"
+                value={formData.mission}
+                onChange={handleChange}
+                className="rounded-xl border-border bg-muted/50 focus-visible:ring-primary h-12 px-4"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <Label htmlFor="vision" className="text-sm font-bold text-foreground">Vision</Label>
+              <Input
+                id="vision"
+                placeholder="Organization vision"
+                value={formData.vision}
+                onChange={handleChange}
+                className="rounded-xl border-border bg-muted/50 focus-visible:ring-primary h-12 px-4"
+              />
+            </div>
+
+            <div className="space-y-3 col-span-2">
+              <Label htmlFor="websiteUrl" className="text-sm font-bold text-foreground">Website URL</Label>
+              <Input
+                id="websiteUrl"
+                placeholder="https://example.org"
+                value={formData.websiteUrl}
+                onChange={handleChange}
+                className="rounded-xl border-border bg-muted/50 focus-visible:ring-primary h-12 px-4"
+                type="url"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <Label htmlFor="city" className="text-sm font-bold text-foreground">City</Label>
+              <Input
+                id="city"
+                placeholder="e.g. San Francisco"
+                value={formData.city}
+                onChange={handleChange}
+                className="rounded-xl border-border bg-muted/50 focus-visible:ring-primary h-12 px-4"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <Label htmlFor="country" className="text-sm font-bold text-foreground">Country</Label>
+              <Input
+                id="country"
+                placeholder="e.g. USA"
+                value={formData.country}
+                onChange={handleChange}
+                className="rounded-xl border-border bg-muted/50 focus-visible:ring-primary h-12 px-4"
+              />
+            </div>
           </div>
-          <div className="space-y-3">
-            <Label htmlFor="websiteUrl" className="text-sm font-bold text-foreground">
-              Website URL (Optional)
-            </Label>
-            <Input
-              id="websiteUrl"
-              placeholder="https://example.org"
-              value={websiteUrl}
-              onChange={(e) => setWebsiteUrl(e.target.value)}
-              className="rounded-xl border-border bg-muted/50 focus-visible:ring-primary h-12 px-4"
-              type="url"
-            />
-          </div>
+
           <DialogFooter className="pt-2">
             <Button 
               type="button" 

@@ -10,20 +10,30 @@ export class TeamsService {
     return this.prisma.team.create({ data });
   }
 
-  async findAll(params: { page?: number; limit?: number; cohortId?: string }) {
-    const { page = 1, limit = 20, cohortId } = params;
+  async findAll(params: { page?: number; limit?: number; cohortId?: string; search?: string }) {
+    const { page = 1, limit = 20, cohortId, search } = params;
     const skip = (page - 1) * limit;
     const where: Prisma.TeamWhereInput = {
       deletedAt: null,
       ...(cohortId && { cohortId }),
+      ...(search && {
+        name: { contains: search, mode: "insensitive" as const },
+      }),
     };
 
     const [teams, total] = await Promise.all([
       this.prisma.team.findMany({
         where, skip, take: limit, orderBy: { createdAt: "desc" },
         include: {
-          members: { include: { user: { select: { id: true, name: true, email: true, avatarUrl: true } } } },
-          cohort: { select: { id: true, name: true } },
+          members: {
+            where: { leftAt: null },
+            include: {
+              user: {
+                select: { id: true, name: true, email: true, avatarUrl: true },
+              },
+            },
+          },
+          cohort: { select: { id: true, name: true, status: true } },
           _count: { select: { projects: true, members: true } },
         },
       }),
@@ -36,7 +46,14 @@ export class TeamsService {
     const team = await this.prisma.team.findUnique({
       where: { id, deletedAt: null },
       include: {
-        members: { include: { user: { select: { id: true, name: true, email: true, avatarUrl: true } } } },
+        members: {
+          where: { leftAt: null },
+          include: {
+            user: {
+              select: { id: true, name: true, email: true, avatarUrl: true },
+            },
+          },
+        },
         cohort: { select: { id: true, name: true, status: true } },
         projects: { select: { id: true, name: true, status: true } },
       },
@@ -47,11 +64,16 @@ export class TeamsService {
 
   async addMember(teamId: string, userId: string, role: UserRole = "STUDENT" as UserRole) {
     const team = await this.findById(teamId);
-    if (team.members.length >= team.capacity) {
+    // Count only active members for capacity check
+    const activeMembers = team.members.filter((m) => !m.leftAt);
+    if (activeMembers.length >= team.capacity) {
       throw new BadRequestException("Team is at full capacity");
     }
     return this.prisma.teamMember.create({
       data: { teamId, userId, role },
+      include: {
+        user: { select: { id: true, name: true, email: true, avatarUrl: true } },
+      },
     });
   }
 
@@ -62,8 +84,38 @@ export class TeamsService {
     });
   }
 
+  async setMemberRole(teamId: string, userId: string, role: UserRole) {
+    // If promoting to TEAM_LEAD (captain), demote any existing captain first
+    if (role === ("TEAM_LEAD" as UserRole)) {
+      await this.prisma.teamMember.updateMany({
+        where: {
+          teamId,
+          role: "TEAM_LEAD" as UserRole,
+          leftAt: null,
+        },
+        data: { role: "STUDENT" as UserRole },
+      });
+    }
+
+    return this.prisma.teamMember.update({
+      where: { teamId_userId: { teamId, userId } },
+      data: { role },
+      include: {
+        user: { select: { id: true, name: true, email: true, avatarUrl: true } },
+      },
+    });
+  }
+
   async update(id: string, data: Prisma.TeamUpdateInput) {
     await this.findById(id);
     return this.prisma.team.update({ where: { id }, data });
+  }
+
+  async softDelete(id: string) {
+    await this.findById(id);
+    return this.prisma.team.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
   }
 }

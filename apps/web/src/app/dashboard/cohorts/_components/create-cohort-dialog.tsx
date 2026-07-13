@@ -19,11 +19,18 @@ import {
 
 export function CreateCohortDialog() {
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    sprintStartDate: "",
+    sprintEndDate: "",
+    maxTeams: "",
+    maxStudentsPerTeam: "",
+  });
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: (newCohort: { name: string }) => {
+    mutationFn: (newCohort: any) => {
       return fetchApi("/cohorts", {
         method: "POST",
         body: JSON.stringify(newCohort),
@@ -32,14 +39,35 @@ export function CreateCohortDialog() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cohorts"] });
       setOpen(false);
-      setName("");
+      setFormData({
+        name: "",
+        description: "",
+        sprintStartDate: "",
+        sprintEndDate: "",
+        maxTeams: "",
+        maxStudentsPerTeam: "",
+      });
     },
   });
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({ ...formData, [e.target.id]: e.target.value });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
-    mutation.mutate({ name });
+    if (!formData.name.trim()) return;
+    
+    // Parse dates and numbers before sending
+    const payload = {
+      ...formData,
+      sprintStartDate: formData.sprintStartDate ? new Date(formData.sprintStartDate).toISOString() : null,
+      sprintEndDate: formData.sprintEndDate ? new Date(formData.sprintEndDate).toISOString() : null,
+      maxTeams: formData.maxTeams ? parseInt(formData.maxTeams) : null,
+      maxStudentsPerTeam: formData.maxStudentsPerTeam ? parseInt(formData.maxStudentsPerTeam) : null,
+    };
+    
+    mutation.mutate(payload);
   };
 
   return (
@@ -50,7 +78,7 @@ export function CreateCohortDialog() {
           New Cohort
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] rounded-3xl p-8 border-border/50 shadow-xl">
+      <DialogContent className="sm:max-w-[600px] rounded-3xl p-8 border-border/50 shadow-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-serif text-2xl font-bold text-foreground">Create New Cohort</DialogTitle>
           <DialogDescription className="text-muted-foreground font-medium">
@@ -58,19 +86,77 @@ export function CreateCohortDialog() {
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
-          <div className="space-y-3">
-            <Label htmlFor="name" className="text-sm font-bold text-foreground">
-              Cohort Name
-            </Label>
-            <Input
-              id="name"
-              placeholder="e.g. Summer 2026"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="rounded-xl border-border bg-muted/50 focus-visible:ring-primary h-12 px-4"
-              required
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-3 col-span-2">
+              <Label htmlFor="name" className="text-sm font-bold text-foreground">Cohort Name *</Label>
+              <Input
+                id="name"
+                placeholder="e.g. Summer 2026"
+                value={formData.name}
+                onChange={handleChange}
+                className="rounded-xl border-border bg-muted/50 focus-visible:ring-primary h-12 px-4"
+                required
+              />
+            </div>
+            
+            <div className="space-y-3 col-span-2">
+              <Label htmlFor="description" className="text-sm font-bold text-foreground">Description</Label>
+              <Input
+                id="description"
+                placeholder="Brief description of this cohort"
+                value={formData.description}
+                onChange={handleChange}
+                className="rounded-xl border-border bg-muted/50 focus-visible:ring-primary h-12 px-4"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <Label htmlFor="sprintStartDate" className="text-sm font-bold text-foreground">Start Date</Label>
+              <Input
+                id="sprintStartDate"
+                type="date"
+                value={formData.sprintStartDate}
+                onChange={handleChange}
+                className="rounded-xl border-border bg-muted/50 focus-visible:ring-primary h-12 px-4"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <Label htmlFor="sprintEndDate" className="text-sm font-bold text-foreground">End Date</Label>
+              <Input
+                id="sprintEndDate"
+                type="date"
+                value={formData.sprintEndDate}
+                onChange={handleChange}
+                className="rounded-xl border-border bg-muted/50 focus-visible:ring-primary h-12 px-4"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <Label htmlFor="maxTeams" className="text-sm font-bold text-foreground">Max Teams</Label>
+              <Input
+                id="maxTeams"
+                type="number"
+                placeholder="e.g. 10"
+                value={formData.maxTeams}
+                onChange={handleChange}
+                className="rounded-xl border-border bg-muted/50 focus-visible:ring-primary h-12 px-4"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <Label htmlFor="maxStudentsPerTeam" className="text-sm font-bold text-foreground">Students per Team</Label>
+              <Input
+                id="maxStudentsPerTeam"
+                type="number"
+                placeholder="e.g. 5"
+                value={formData.maxStudentsPerTeam}
+                onChange={handleChange}
+                className="rounded-xl border-border bg-muted/50 focus-visible:ring-primary h-12 px-4"
+              />
+            </div>
           </div>
+
           <DialogFooter className="pt-2">
             <Button 
               type="button" 

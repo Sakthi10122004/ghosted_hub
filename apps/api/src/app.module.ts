@@ -9,6 +9,12 @@ import { TeamsModule } from "./modules/teams/teams.module";
 import { ProjectsModule } from "./modules/projects/projects.module";
 import { AuditModule } from "./modules/audit/audit.module";
 import { AuthModule } from "./modules/auth/auth.module";
+import { ReviewsModule } from './modules/reviews/reviews.module';
+import { FilesModule } from './modules/files/files.module';
+import { DeploymentsModule } from './modules/deployments/deployments.module';
+
+import { SettingsModule } from './modules/settings/settings.module';
+import { InvitationsModule } from './modules/invitations/invitations.module';
 
 @Module({
   imports: [
@@ -30,6 +36,11 @@ import { AuthModule } from "./modules/auth/auth.module";
     TeamsModule,
     ProjectsModule,
     AuditModule,
+    ReviewsModule,
+    FilesModule,
+    DeploymentsModule,
+    SettingsModule,
+    InvitationsModule,
   ],
 })
 export class AppModule {}

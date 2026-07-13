@@ -5,6 +5,7 @@ import { fetchApi } from "@/lib/api-client"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { InviteUserDialog } from "../settings/_components/invite-user-dialog"
 
 export default function UsersPage() {
   const { data, isLoading } = useQuery({
@@ -19,6 +20,7 @@ export default function UsersPage() {
           <h1 className="text-3xl font-bold tracking-tight">Users</h1>
           <p className="text-muted-foreground">Manage platform users and roles.</p>
         </div>
+        <InviteUserDialog />
       </div>
 
       <Card>

@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchApi } from "@/lib/api-client";
 import { Card, CardContent } from "@/components/ui/card";
-import { AlertCircle, Bell, Search, Plus } from "lucide-react";
+import { Bell, Search, Plus } from "lucide-react";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
 
@@ -80,46 +80,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Needs Attention Panel */}
-      <div className="bg-card rounded-3xl p-8 shadow-sm border border-border/50 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -z-10"></div>
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-3">
-            <div className="w-3 h-3 rounded-full bg-status-blocked animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]"></div>
-            <h2 className="text-sm font-bold tracking-wider text-foreground uppercase">Needs Your Attention</h2>
-          </div>
-          <span className="text-sm font-medium text-muted-foreground bg-muted px-3 py-1 rounded-full">6 items across 4 projects</span>
-        </div>
-        
-        <div className="grid md:grid-cols-3 gap-5">
-          {/* Attention Card 1 */}
-          <div className="bg-background border border-border/50 rounded-2xl p-6 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer group">
-            <div className="inline-block px-3 py-1 rounded-lg text-[10px] font-bold tracking-widest uppercase bg-status-blocked/10 text-status-blocked mb-4">
-              Blocked
-            </div>
-            <h3 className="text-foreground font-bold mb-2 group-hover:text-primary transition-colors">Riverbend Youth Alliance</h3>
-            <p className="text-sm text-muted-foreground font-medium">Waiting on nonprofit content — 9 days</p>
-          </div>
-          
-          {/* Attention Card 2 */}
-          <div className="bg-background border border-border/50 rounded-2xl p-6 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer group">
-            <div className="inline-block px-3 py-1 rounded-lg text-[10px] font-bold tracking-widest uppercase bg-status-attention/10 text-status-attention mb-4">
-              Review Overdue
-            </div>
-            <h3 className="text-foreground font-bold mb-2 group-hover:text-primary transition-colors">Harbor Literacy Project</h3>
-            <p className="text-sm text-muted-foreground font-medium">Homepage design — due 3 days ago</p>
-          </div>
-
-          {/* Attention Card 3 */}
-          <div className="bg-background border border-border/50 rounded-2xl p-6 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer group">
-            <div className="inline-block px-3 py-1 rounded-lg text-[10px] font-bold tracking-widest uppercase bg-primary/10 text-primary mb-4">
-              Deadline Approaching
-            </div>
-            <h3 className="text-foreground font-bold mb-2 group-hover:text-primary transition-colors">Cascade Wildlife Trust</h3>
-            <p className="text-sm text-muted-foreground font-medium">Launch review — due tomorrow</p>
-          </div>
-        </div>
-      </div>
 
       {/* Metrics Row */}
       <div className="grid md:grid-cols-4 gap-5">
@@ -169,7 +129,7 @@ export default function DashboardPage() {
       <div className="grid lg:grid-cols-3 gap-8">
         
         {/* Your Projects */}
-        <div className="lg:col-span-2 space-y-5">
+        <div className="lg:col-span-3 space-y-5">
           <div className="flex items-center justify-between mb-4 bg-card p-4 rounded-2xl shadow-sm">
             <h2 className="text-xl font-serif font-bold text-foreground px-2">Your Projects</h2>
             <div className="flex items-center space-x-1.5 text-sm p-1 bg-muted rounded-xl">
@@ -229,7 +189,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="w-28 flex justify-end">
                       <span className={`inline-flex items-center px-3 py-1.5 rounded-xl text-[11px] font-bold uppercase tracking-wider ${getStatusColor(project.status).split(' ')[0]} ${getStatusColor(project.status).split(' ')[1]}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full mr-2 ${getStatusColor(project.status).split(' ')[2].replace('marker-', 'bg-')}`}></span> 
+                        <span className={`w-1.5 h-1.5 rounded-full mr-2 ${getStatusColor(project.status).split(' ')[2]?.replace('marker-', 'bg-') ?? ''}`}></span> 
                         {project.status === "ACTIVE" ? "On Track" : project.status}
                       </span>
                     </div>
@@ -240,26 +200,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Activity Feed */}
-        <div className="lg:col-span-1 space-y-4">
-          <div className="bg-card rounded-3xl p-8 shadow-sm border border-border/50 h-full relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-secondary/50 rounded-bl-full -z-10"></div>
-            <h2 className="text-xl font-serif font-bold text-foreground mb-8">Activity</h2>
-            
-            <div className="space-y-8 relative before:absolute before:inset-0 before:ml-[11px] before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-border before:to-transparent">
-              <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                <div className="flex items-center justify-center w-6 h-6 rounded-full border-4 border-card bg-primary shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow-sm relative z-10"></div>
-                <div className="w-[calc(100%-3rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-2xl border border-border/50 bg-background shadow-sm">
-                  <div className="flex items-center justify-between space-x-2 mb-1">
-                    <div className="font-bold text-foreground text-sm">System</div>
-                    <time className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Just now</time>
-                  </div>
-                  <div className="text-muted-foreground text-xs font-medium">Fetched the latest project timeline data.</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
 
       </div>
     </div>

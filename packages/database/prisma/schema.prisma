@@ -189,26 +189,26 @@ model User {
   deletedAt     DateTime?
 
   // Relations
-  roles            UserRoleAssignment[]
-  studentProfile   StudentProfile?
-  nonprofitRep     NonprofitContact[]
-  teamMemberships  TeamMember[]
-  applications     Application[]
-  assignedTasks    Task[]               @relation("TaskAssignee")
-  createdTasks     Task[]               @relation("TaskCreator")
-  taskComments     TaskComment[]
-  reviews          ReviewCycle[]         @relation("Reviewer")
-  messages         Message[]
-  notifications    Notification[]
-  uploadedFiles    ProjectFile[]
+  roles              UserRoleAssignment[]
+  studentProfile     StudentProfile?
+  nonprofitRep       NonprofitContact[]
+  teamMemberships    TeamMember[]
+  applications       Application[]
+  assignedTasks      Task[]               @relation("TaskAssignee")
+  createdTasks       Task[]               @relation("TaskCreator")
+  taskComments       TaskComment[]
+  reviews            ReviewCycle[]        @relation("Reviewer")
+  messages           Message[]
+  notifications      Notification[]
+  uploadedFiles      ProjectFile[]
   deliverableUploads DeliverableVersion[] @relation("Uploader")
   deliverableReviews DeliverableVersion[] @relation("DeliverableReviewer")
-  auditLogs        AuditLog[]
-  meetingAttendees MeetingAttendee[]
-  trainingAttendees TrainingAttendee[]
-  invitations      Invitation[]         @relation("InvitedBy")
-  accounts         Account[]
-  sessions         Session[]
+  auditLogs          AuditLog[]
+  meetingAttendees   MeetingAttendee[]
+  trainingAttendees  TrainingAttendee[]
+  invitations        Invitation[]         @relation("InvitedBy")
+  accounts           Account[]
+  sessions           Session[]
 
   @@index([email])
   @@index([deletedAt])
@@ -267,7 +267,7 @@ model UserRoleAssignment {
   id        String   @id @default(cuid())
   userId    String
   role      UserRole
-  cohortId  String?  // Role scoped to a specific cohort (optional)
+  cohortId  String? // Role scoped to a specific cohort (optional)
   createdAt DateTime @default(now())
 
   user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -279,15 +279,15 @@ model UserRoleAssignment {
 }
 
 model Invitation {
-  id        String   @id @default(cuid())
-  email     String
-  role      UserRole
-  cohortId  String?
-  token     String   @unique
-  expiresAt DateTime
-  accepted  Boolean  @default(false)
+  id          String   @id @default(cuid())
+  email       String
+  role        UserRole
+  cohortId    String?
+  token       String   @unique
+  expiresAt   DateTime
+  accepted    Boolean  @default(false)
   invitedById String
-  createdAt DateTime @default(now())
+  createdAt   DateTime @default(now())
 
   invitedBy User    @relation("InvitedBy", fields: [invitedById], references: [id])
   cohort    Cohort? @relation(fields: [cohortId], references: [id])
@@ -302,21 +302,21 @@ model Invitation {
 // ═══════════════════════════════════════════════════════════════
 
 model StudentProfile {
-  id             String   @id @default(cuid())
-  userId         String   @unique
-  university     String?
-  major          String?
-  graduationYear Int?
-  skills         String[] // Array of skill tags
-  portfolioUrl   String?
-  githubUrl      String?
-  linkedinUrl    String?
-  resumeUrl      String?
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  university      String?
+  major           String?
+  graduationYear  Int?
+  skills          String[] // Array of skill tags
+  portfolioUrl    String?
+  githubUrl       String?
+  linkedinUrl     String?
+  resumeUrl       String?
   ghostExperience String?
-  uiSkills       String?
-  availability   String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  uiSkills        String?
+  availability    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -328,28 +328,28 @@ model StudentProfile {
 // ═══════════════════════════════════════════════════════════════
 
 model Cohort {
-  id                  String       @id @default(cuid())
-  name                String
-  description         String?
-  status              CohortStatus @default(DRAFT)
-  registrationOpensAt DateTime?
+  id                   String       @id @default(cuid())
+  name                 String
+  description          String?
+  status               CohortStatus @default(DRAFT)
+  registrationOpensAt  DateTime?
   registrationClosesAt DateTime?
-  sprintStartDate     DateTime?
-  sprintEndDate       DateTime?
-  maxTeams            Int?
-  maxStudentsPerTeam  Int?
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
-  deletedAt           DateTime?
+  sprintStartDate      DateTime?
+  sprintEndDate        DateTime?
+  maxTeams             Int?
+  maxStudentsPerTeam   Int?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  deletedAt            DateTime?
 
   // Relations
-  projects     Project[]
-  teams        Team[]
-  nonprofits   CohortNonprofit[]
-  applications Application[]
+  projects        Project[]
+  teams           Team[]
+  nonprofits      CohortNonprofit[]
+  applications    Application[]
   roleAssignments UserRoleAssignment[]
-  invitations  Invitation[]
-  calendarEvents CohortCalendarEvent[]
+  invitations     Invitation[]
+  calendarEvents  CohortCalendarEvent[]
 
   @@index([status])
   @@index([deletedAt])
@@ -357,15 +357,15 @@ model Cohort {
 }
 
 model CohortCalendarEvent {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   cohortId    String
   title       String
   description String?
   startDate   DateTime
   endDate     DateTime?
-  isAllDay    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isAllDay    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   cohort Cohort @relation(fields: [cohortId], references: [id], onDelete: Cascade)
 
@@ -378,41 +378,41 @@ model CohortCalendarEvent {
 // ═══════════════════════════════════════════════════════════════
 
 model Nonprofit {
-  id             String    @id @default(cuid())
-  name           String
-  description    String?
-  mission        String?
-  vision         String?
-  programs       String?
-  websiteUrl     String?
-  logoUrl        String?
-  socialLinks    Json?     // { twitter, facebook, instagram, linkedin }
-  address        String?
-  city           String?
-  state          String?
-  country        String?
-  zipCode        String?
-  ein            String?   // Tax ID
-  foundedYear    Int?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  deletedAt      DateTime?
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  mission     String?
+  vision      String?
+  programs    String?
+  websiteUrl  String?
+  logoUrl     String?
+  socialLinks Json? // { twitter, facebook, instagram, linkedin }
+  address     String?
+  city        String?
+  state       String?
+  country     String?
+  zipCode     String?
+  ein         String? // Tax ID
+  foundedYear Int?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
 
   // Relations
-  contacts       NonprofitContact[]
-  cohorts        CohortNonprofit[]
-  projects       Project[]
-  documents      NonprofitDocument[]
+  contacts  NonprofitContact[]
+  cohorts   CohortNonprofit[]
+  projects  Project[]
+  documents NonprofitDocument[]
 
   @@index([deletedAt])
   @@map("nonprofits")
 }
 
 model NonprofitContact {
-  id          String  @id @default(cuid())
+  id          String   @id @default(cuid())
   nonprofitId String
   userId      String
-  isPrimary   Boolean @default(false)
+  isPrimary   Boolean  @default(false)
   title       String?
   createdAt   DateTime @default(now())
 
@@ -457,17 +457,17 @@ model CohortNonprofit {
 // ═══════════════════════════════════════════════════════════════
 
 model Application {
-  id          String            @id @default(cuid())
-  type        ApplicationType
-  status      ApplicationStatus @default(APPLIED)
-  cohortId    String
-  userId      String
-  responses   Json?             // Form responses as JSON
-  notes       String?           // Internal reviewer notes
-  reviewedAt  DateTime?
-  reviewedBy  String?
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  id         String            @id @default(cuid())
+  type       ApplicationType
+  status     ApplicationStatus @default(APPLIED)
+  cohortId   String
+  userId     String
+  responses  Json? // Form responses as JSON
+  notes      String? // Internal reviewer notes
+  reviewedAt DateTime?
+  reviewedBy String?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
 
   cohort Cohort @relation(fields: [cohortId], references: [id], onDelete: Cascade)
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -483,30 +483,30 @@ model Application {
 // ═══════════════════════════════════════════════════════════════
 
 model Team {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   name      String
   cohortId  String
-  capacity  Int      @default(5)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  capacity  Int       @default(5)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   // Relations
-  cohort    Cohort       @relation(fields: [cohortId], references: [id], onDelete: Cascade)
-  members   TeamMember[]
-  projects  Project[]
+  cohort   Cohort       @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+  members  TeamMember[]
+  projects Project[]
 
   @@index([cohortId])
   @@map("teams")
 }
 
 model TeamMember {
-  id        String   @id @default(cuid())
-  teamId    String
-  userId    String
-  role      UserRole @default(STUDENT) // STUDENT, TEAM_LEAD, or MENTOR
-  joinedAt  DateTime @default(now())
-  leftAt    DateTime?
+  id       String    @id @default(cuid())
+  teamId   String
+  userId   String
+  role     UserRole  @default(STUDENT) // STUDENT, TEAM_LEAD, or MENTOR
+  joinedAt DateTime  @default(now())
+  leftAt   DateTime?
 
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -531,7 +531,7 @@ model Project {
   nonprofitId String
   startDate   DateTime?
   endDate     DateTime?
-  websiteUrl  String?       // Final deployed site URL
+  websiteUrl  String? // Final deployed site URL
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   deletedAt   DateTime?
@@ -565,18 +565,18 @@ model Project {
 // ═══════════════════════════════════════════════════════════════
 
 model Discovery {
-  id               String   @id @default(cuid())
-  projectId        String   @unique
-  kickoffDate      DateTime?
-  kickoffNotes     String?
-  requirements     Json?    // Structured requirements
-  sitemap          Json?    // Page hierarchy
-  navigation       Json?    // Navigation structure
-  contentPlan      Json?    // Content plan
-  brandDiscussion  Json?    // Brand notes, colors, fonts
-  referenceWebsites Json?   // Array of reference URLs
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id                String    @id @default(cuid())
+  projectId         String    @unique
+  kickoffDate       DateTime?
+  kickoffNotes      String?
+  requirements      Json? // Structured requirements
+  sitemap           Json? // Page hierarchy
+  navigation        Json? // Navigation structure
+  contentPlan       Json? // Content plan
+  brandDiscussion   Json? // Brand notes, colors, fonts
+  referenceWebsites Json? // Array of reference URLs
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
@@ -603,9 +603,9 @@ model Task {
   completedAt DateTime?
 
   // Relations
-  project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  assignee    User?           @relation("TaskAssignee", fields: [assigneeId], references: [id])
-  creator     User            @relation("TaskCreator", fields: [creatorId], references: [id])
+  project     Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignee    User?            @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  creator     User             @relation("TaskCreator", fields: [creatorId], references: [id])
   comments    TaskComment[]
   attachments TaskAttachment[]
 
@@ -649,23 +649,23 @@ model TaskAttachment {
 // ═══════════════════════════════════════════════════════════════
 
 model ProjectFile {
-  id          String       @id @default(cuid())
-  projectId   String
+  id           String       @id @default(cuid())
+  projectId    String
   uploadedById String
-  name        String
-  fileUrl     String
-  fileSize    Int?
-  mimeType    String?
-  category    FileCategory @default(OTHER)
-  tags        String[]
-  version     Int          @default(1)
-  parentId    String?      // For versioning — points to previous version
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  name         String
+  fileUrl      String
+  fileSize     Int?
+  mimeType     String?
+  category     FileCategory @default(OTHER)
+  tags         String[]
+  version      Int          @default(1)
+  parentId     String? // For versioning — points to previous version
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
-  project    Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  uploadedBy User         @relation(fields: [uploadedById], references: [id])
-  parent     ProjectFile? @relation("FileVersions", fields: [parentId], references: [id])
+  project    Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploadedBy User          @relation(fields: [uploadedById], references: [id])
+  parent     ProjectFile?  @relation("FileVersions", fields: [parentId], references: [id])
   versions   ProjectFile[] @relation("FileVersions")
 
   @@index([projectId, category])
@@ -695,16 +695,16 @@ model Review {
 }
 
 model ReviewCycle {
-  id         String       @id @default(cuid())
-  reviewId   String
-  reviewerId String
+  id          String       @id @default(cuid())
+  reviewId    String
+  reviewerId  String
   cycleNumber Int
-  status     ReviewStatus
-  feedback   String?
+  status      ReviewStatus
+  feedback    String?
   submittedAt DateTime?
   reviewedAt  DateTime?
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   review   Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
   reviewer User   @relation("Reviewer", fields: [reviewerId], references: [id])
@@ -718,14 +718,14 @@ model ReviewCycle {
 // ═══════════════════════════════════════════════════════════════
 
 model Deliverable {
-  id          String         @id @default(cuid())
+  id          String            @id @default(cuid())
   projectId   String
   type        DeliverableType
   name        String
   description String?
   status      DeliverableStatus @default(DRAFT)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 
   project  Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
   versions DeliverableVersion[]
@@ -735,17 +735,17 @@ model Deliverable {
 }
 
 model DeliverableVersion {
-  id             String           @id @default(cuid())
-  deliverableId  String
-  version        Int
-  fileUrl        String
-  fileSize       Int?
-  uploadedById   String
-  reviewerId     String?
-  status         DeliverableStatus @default(SUBMITTED)
-  reviewNotes    String?
-  uploadedAt     DateTime         @default(now())
-  reviewedAt     DateTime?
+  id            String            @id @default(cuid())
+  deliverableId String
+  version       Int
+  fileUrl       String
+  fileSize      Int?
+  uploadedById  String
+  reviewerId    String?
+  status        DeliverableStatus @default(SUBMITTED)
+  reviewNotes   String?
+  uploadedAt    DateTime          @default(now())
+  reviewedAt    DateTime?
 
   deliverable Deliverable @relation(fields: [deliverableId], references: [id], onDelete: Cascade)
   uploadedBy  User        @relation("Uploader", fields: [uploadedById], references: [id])
@@ -767,7 +767,7 @@ model TrainingSession {
   description  String?
   trainerId    String?
   scheduledAt  DateTime?
-  duration     Int?           // minutes
+  duration     Int? // minutes
   status       TrainingStatus @default(SCHEDULED)
   topics       String[]
   recordingUrl String?
@@ -775,7 +775,7 @@ model TrainingSession {
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
-  project   Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project   Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
   attendees TrainingAttendee[]
 
   @@index([projectId])
@@ -783,10 +783,10 @@ model TrainingSession {
 }
 
 model TrainingAttendee {
-  id         String   @id @default(cuid())
-  sessionId  String
-  userId     String
-  attended   Boolean  @default(false)
+  id          String    @id @default(cuid())
+  sessionId   String
+  userId      String
+  attended    Boolean   @default(false)
   completedAt DateTime?
 
   session TrainingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
@@ -806,14 +806,14 @@ model Meeting {
   title       String
   description String?
   scheduledAt DateTime
-  duration    Int?     // minutes
+  duration    Int? // minutes
   meetingUrl  String?
   agenda      String?
   notes       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  project   Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project   Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
   attendees MeetingAttendee[]
 
   @@index([projectId])
@@ -838,20 +838,20 @@ model MeetingAttendee {
 // ═══════════════════════════════════════════════════════════════
 
 model Message {
-  id          String   @id @default(cuid())
-  projectId   String
-  authorId    String
-  content     String
-  isAnnouncement Boolean @default(false)
-  parentId    String?  // For threading
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  deletedAt   DateTime?
+  id             String    @id @default(cuid())
+  projectId      String
+  authorId       String
+  content        String
+  isAnnouncement Boolean   @default(false)
+  parentId       String? // For threading
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
 
-  project  Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  author   User      @relation(fields: [authorId], references: [id])
-  parent   Message?  @relation("MessageThread", fields: [parentId], references: [id])
-  replies  Message[] @relation("MessageThread")
+  project Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author  User      @relation(fields: [authorId], references: [id])
+  parent  Message?  @relation("MessageThread", fields: [parentId], references: [id])
+  replies Message[] @relation("MessageThread")
 
   @@index([projectId])
   @@index([parentId])
@@ -897,11 +897,11 @@ model TimelineEvent {
 // ═══════════════════════════════════════════════════════════════
 
 model DeploymentDecision {
-  id         String           @id @default(cuid())
-  projectId  String           @unique
-  option     DeploymentOption
-  notes      String?
-  decidedAt  DateTime         @default(now())
+  id        String           @id @default(cuid())
+  projectId String           @unique
+  option    DeploymentOption
+  notes     String?
+  decidedAt DateTime         @default(now())
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
@@ -918,7 +918,7 @@ model Notification {
   type      NotificationType
   title     String
   message   String?
-  link      String?          // Deep link into the platform
+  link      String? // Deep link into the platform
   isRead    Boolean          @default(false)
   metadata  Json?
   createdAt DateTime         @default(now())
@@ -937,10 +937,10 @@ model Notification {
 model AuditLog {
   id         String   @id @default(cuid())
   userId     String?
-  action     String   // e.g. "user.login", "project.status_change"
-  entityType String?  // e.g. "Project", "Task", "Review"
+  action     String // e.g. "user.login", "project.status_change"
+  entityType String? // e.g. "Project", "Task", "Review"
   entityId   String?
-  metadata   Json?    // Additional context
+  metadata   Json? // Additional context
   ipAddress  String?
   userAgent  String?
   createdAt  DateTime @default(now())
@@ -952,4 +952,19 @@ model AuditLog {
   @@index([action])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SYSTEM SETTINGS
+// ═══════════════════════════════════════════════════════════════
+
+model SystemSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  isSecret  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("system_settings")
 }

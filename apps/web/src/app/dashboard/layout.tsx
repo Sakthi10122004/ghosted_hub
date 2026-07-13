@@ -4,6 +4,61 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { authClient } from "@/lib/auth-client";
+import {
+  LayoutDashboard,
+  FolderKanban,
+  ClipboardCheck,
+  FileStack,
+  Users,
+  Building2,
+  Layers3,
+  Settings,
+  Rocket,
+  ScrollText,
+} from "lucide-react";
+
+const navItems = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { href: "/dashboard/projects", label: "Projects", icon: FolderKanban },
+  { href: "/dashboard/reviews", label: "Reviews", icon: ClipboardCheck },
+  { href: "/dashboard/files", label: "Files", icon: FileStack },
+];
+
+const programItems = [
+  { href: "/dashboard/cohorts", label: "Cohorts", icon: Layers3 },
+  { href: "/dashboard/teams", label: "Student Teams", icon: Users },
+  { href: "/dashboard/nonprofits", label: "Nonprofits", icon: Building2 },
+];
+
+const workspaceItems = [
+  { href: "/dashboard/settings", label: "Settings", icon: Settings },
+  { href: "/dashboard/deployments", label: "Deployments", icon: Rocket, adminOnly: true },
+  { href: "/dashboard/logs", label: "System Logs", icon: ScrollText, adminOnly: true },
+];
+
+function NavLink({ href, label, icon: Icon, pathname, exact }: {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  pathname: string;
+  exact?: boolean;
+}) {
+  const isActive = exact ? pathname === href : pathname.startsWith(href);
+
+  return (
+    <Link
+      href={href}
+      className={`flex items-center px-4 py-3 text-sm font-semibold rounded-2xl transition-all duration-200 ${
+        isActive
+          ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30 scale-100"
+          : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-white"
+      }`}
+    >
+      <Icon className={`w-4 h-4 mr-3 flex-shrink-0 ${isActive ? "text-primary-foreground" : ""}`} />
+      {label}
+    </Link>
+  );
+}
 
 export default function DashboardLayout({
   children,
@@ -34,7 +89,7 @@ export default function DashboardLayout({
       <aside className="w-64 bg-sidebar text-sidebar-foreground hidden md:flex md:flex-col border-r border-sidebar-border">
         {/* Logo Area */}
         <div className="p-6 flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white font-serif font-bold text-xl">
+          <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-white font-serif font-bold text-xl">
             G
           </div>
           <div className="flex flex-col">
@@ -47,74 +102,31 @@ export default function DashboardLayout({
         <nav className="flex-1 overflow-y-auto px-4 py-4 space-y-8">
           
           {/* Main Links */}
-          <div className="space-y-2">
-            <Link href="/dashboard" className={`flex items-center px-4 py-3 text-sm font-semibold rounded-2xl transition-all ${
-              pathname === "/dashboard" ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30 scale-100" : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-white"
-            }`}>
-              <span className={`w-2 h-2 rounded-full mr-3 ${pathname === "/dashboard" ? "bg-white" : "bg-transparent"}`}></span>
-              Dashboard
-            </Link>
-            <Link href="/dashboard/projects" className={`flex items-center px-4 py-3 text-sm font-semibold rounded-2xl transition-all ${
-              pathname.startsWith("/dashboard/projects") ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30 scale-100" : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-white"
-            }`}>
-              <span className={`w-2 h-2 rounded-full mr-3 ${pathname.startsWith("/dashboard/projects") ? "bg-white" : "bg-transparent"}`}></span>
-              Projects
-            </Link>
-            <Link href="/dashboard/reviews" className={`flex items-center px-4 py-3 text-sm font-semibold rounded-2xl transition-all ${
-              pathname.startsWith("/dashboard/reviews") ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30 scale-100" : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-white"
-            }`}>
-              <span className={`w-2 h-2 rounded-full mr-3 ${pathname.startsWith("/dashboard/reviews") ? "bg-white" : "bg-transparent"}`}></span>
-              Reviews
-            </Link>
-            <Link href="/dashboard/files" className={`flex items-center px-4 py-3 text-sm font-semibold rounded-2xl transition-all ${
-              pathname.startsWith("/dashboard/files") ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30 scale-100" : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-white"
-            }`}>
-              <span className={`w-2 h-2 rounded-full mr-3 ${pathname.startsWith("/dashboard/files") ? "bg-white" : "bg-transparent"}`}></span>
-              Files
-            </Link>
+          <div className="space-y-1.5">
+            {navItems.map((item) => (
+              <NavLink key={item.href} {...item} pathname={pathname} />
+            ))}
           </div>
 
           {/* Program Section */}
           <div>
             <h3 className="px-5 text-[10px] font-bold tracking-widest text-sidebar-foreground/40 uppercase mb-3">Program</h3>
-            <div className="space-y-2">
-              <Link href="/dashboard/cohorts" className={`flex items-center px-4 py-3 text-sm font-semibold rounded-2xl transition-all ${
-                pathname.startsWith("/dashboard/cohorts") ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30 scale-100" : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-white"
-              }`}>
-                <span className={`w-2 h-2 rounded-full mr-3 ${pathname.startsWith("/dashboard/cohorts") ? "bg-white" : "bg-transparent"}`}></span>
-                Cohorts
-              </Link>
-              <Link href="/dashboard/teams" className={`flex items-center px-4 py-3 text-sm font-semibold rounded-2xl transition-all ${
-                pathname.startsWith("/dashboard/teams") ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30 scale-100" : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-white"
-              }`}>
-                <span className={`w-2 h-2 rounded-full mr-3 ${pathname.startsWith("/dashboard/teams") ? "bg-white" : "bg-transparent"}`}></span>
-                Student Teams
-              </Link>
-              <Link href="/dashboard/nonprofits" className={`flex items-center px-4 py-3 text-sm font-semibold rounded-2xl transition-all ${
-                pathname.startsWith("/dashboard/nonprofits") ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30 scale-100" : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-white"
-              }`}>
-                <span className={`w-2 h-2 rounded-full mr-3 ${pathname.startsWith("/dashboard/nonprofits") ? "bg-white" : "bg-transparent"}`}></span>
-                Nonprofits
-              </Link>
+            <div className="space-y-1.5">
+              {programItems.map((item) => (
+                <NavLink key={item.href} {...item} pathname={pathname} />
+              ))}
             </div>
           </div>
 
           {/* Workspace Section */}
           <div>
             <h3 className="px-5 text-[10px] font-bold tracking-widest text-sidebar-foreground/40 uppercase mb-3">Workspace</h3>
-            <div className="space-y-2">
-              <Link href="/dashboard/training" className={`flex items-center px-4 py-3 text-sm font-semibold rounded-2xl transition-all ${
-                pathname.startsWith("/dashboard/training") ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30 scale-100" : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-white"
-              }`}>
-                <span className={`w-2 h-2 rounded-full mr-3 ${pathname.startsWith("/dashboard/training") ? "bg-white" : "bg-transparent"}`}></span>
-                Training
-              </Link>
-              <Link href="/dashboard/settings" className={`flex items-center px-4 py-3 text-sm font-semibold rounded-2xl transition-all ${
-                pathname.startsWith("/dashboard/settings") ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30 scale-100" : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-white"
-              }`}>
-                <span className={`w-2 h-2 rounded-full mr-3 ${pathname.startsWith("/dashboard/settings") ? "bg-white" : "bg-transparent"}`}></span>
-                Settings
-              </Link>
+            <div className="space-y-1.5">
+              {workspaceItems.map((item) => {
+                // @ts-ignore - TODO: fix session types
+                if (item.adminOnly && session?.user?.role !== "SUPER_ADMIN" && session?.user?.role !== "admin") return null;
+                return <NavLink key={item.href} {...item} pathname={pathname} />;
+              })}
             </div>
           </div>
         </nav>
