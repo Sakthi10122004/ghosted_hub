@@ -5,42 +5,42 @@ import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useUserRole } from "@/hooks/use-user-role";
 import { authClient } from "@/lib/auth-client";
-import { Search, Bell, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", exact: true, svg: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg> },
-  { href: "/dashboard/projects", label: "Projects", svg: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-1.22-1.8A2 2 0 0 0 8.53 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/><path d="M8 10v6"/><path d="M12 10v6"/><path d="M16 10v6"/></svg> },
-  { href: "/dashboard/reviews", label: "Reviews", svg: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg> },
-  { href: "/dashboard/files", label: "Files", svg: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><path d="M3 13h18"/></svg> },
+  { href: "/dashboard", label: "Dashboard", exact: true, svg: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="8" height="8" rx="1.5" /><rect x="13" y="3" width="8" height="8" rx="1.5" /><rect x="3" y="13" width="8" height="8" rx="1.5" /><rect x="13" y="13" width="8" height="8" rx="1.5" /></svg> },
+  { href: "/dashboard/projects", label: "Projects", svg: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" /></svg> },
+  { href: "/dashboard/reviews", label: "Reviews", svg: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg> },
+  { href: "/dashboard/files", label: "Files", svg: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" /><path d="M13 2v7h7" /></svg> },
 ];
 
 const programItems = [
-  { href: "/dashboard/cohorts", label: "Cohorts", svg: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg> },
-  { href: "/dashboard/teams", label: "Student Teams", svg: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
-  { href: "/dashboard/nonprofits", label: "Nonprofits", svg: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg> },
+  { href: "/dashboard/cohorts", label: "Cohorts", svg: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 2 2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" /></svg> },
+  { href: "/dashboard/teams", label: "Student Teams", svg: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="9" cy="8" r="3.2" /><path d="M2.5 20c0-3.6 2.9-6.2 6.5-6.2s6.5 2.6 6.5 6.2" /><circle cx="17.5" cy="9" r="2.4" /><path d="M15.5 13.5c2.7.3 4.8 2.4 5 5.2" /></svg> },
+  { href: "/dashboard/nonprofits", label: "Nonprofits", svg: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 22V6l8-4 8 4v16" /><path d="M9 22v-6h6v6" /><path d="M9 10h.01M15 10h.01M9 14h.01M15 14h.01" /></svg> },
 ];
 
 const workspaceItems = [
-  { href: "/dashboard/settings", label: "Settings", adminOnly: true, svg: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg> },
-  { href: "/dashboard/deployments", label: "Deployments", superAdminOnly: true, svg: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg> },
-  { href: "/dashboard/logs", label: "System Logs", superAdminOnly: true, svg: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M8 13h2"/><path d="M14 13h2"/><path d="M8 17h2"/><path d="M14 17h2"/></svg> },
+  { href: "/dashboard/settings", label: "Settings", adminOnly: true, svg: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></svg> },
+  { href: "/dashboard/deployments", label: "Deployments", superAdminOnly: true, svg: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.08-2.92a2.18 2.18 0 0 0-2.92-.08z" /><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" /></svg> },
+  { href: "/dashboard/logs", label: "System Logs", superAdminOnly: true, svg: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="M9 15h6M9 11h6M9 19h3" /></svg> },
 ];
 
-function NavLink({ href, label, svg, pathname, exact, onClick }: {
+function NavLink({ href, label, svg, pathname, exact, onClick, delayIndex }: {
   href: string;
   label: string;
   svg: React.ReactNode;
   pathname: string;
   exact?: boolean;
   onClick?: () => void;
+  delayIndex: number;
 }) {
   const isActive = exact ? pathname === href : pathname.startsWith(href);
 
@@ -48,13 +48,13 @@ function NavLink({ href, label, svg, pathname, exact, onClick }: {
     <Link
       href={href}
       onClick={onClick}
-      className={`flex items-center px-3 py-2 text-[11px] font-mono uppercase tracking-widest font-semibold transition-colors border-l-2 ${
-        isActive
-          ? "bg-accent/10 border-primary text-primary"
-          : "border-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
-      }`}
+      style={{ '--i': delayIndex } as any}
+      className={`flex items-center gap-[11px] py-[9px] rounded-[8px] text-[13.5px] mb-[2px] transition-colors border-l-2 opacity-0 animate-slide-in-left ${isActive
+          ? "bg-[#1D2A27] text-[#7FCBB9] border-primary pl-2 pr-2.5"
+          : "text-[#C9C6D6] border-transparent px-[10px] hover:bg-[#201F27] hover:text-[#EFEDE6]"
+        }`}
     >
-      <div className={`w-4 h-4 mr-3 flex-shrink-0 flex items-center justify-center ${isActive ? "text-primary" : "text-muted-foreground"}`}>
+      <div className={`shrink-0 ${isActive ? "opacity-100" : "opacity-75"}`}>
         {svg}
       </div>
       {label}
@@ -72,7 +72,6 @@ export default function DashboardLayout({
   const { session, isPending, isStudent, isAdmin, isSuperAdmin } = useUserRole();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Close mobile menu when pathname changes (navigation)
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [pathname]);
@@ -88,38 +87,36 @@ export default function DashboardLayout({
   }
 
   if (!session) {
-    return null; // Will redirect in useEffect
+    return null;
   }
 
   const breadcrumbSegments = pathname.split('/').filter(Boolean);
-  const formattedBreadcrumbs = breadcrumbSegments.map(segment => 
+  const formattedBreadcrumbs = breadcrumbSegments.map(segment =>
     segment.charAt(0).toUpperCase() + segment.slice(1)
   ).join(' / ');
 
   const userInitials = session.user?.name ? session.user.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'U';
 
   return (
-    <div className="flex h-screen bg-background font-sans overflow-hidden">
+    <div className="flex h-screen bg-background font-sans overflow-hidden app-grid md:grid md:grid-cols-[250px_1fr]">
       {/* Mobile Sidebar Overlay */}
       {isMobileMenuOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 md:hidden"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
       {/* Sidebar */}
-      <aside className={`w-64 md:w-60 bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border shadow-sm z-50 fixed md:relative h-full transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
-        {/* Logo Area */}
-        <div className="h-14 px-5 flex items-center justify-between border-b border-border shrink-0">
-          <Link href="/dashboard" className="flex items-center space-x-2">
-            <div className="w-6 h-6 bg-primary flex items-center justify-center text-white font-mono font-bold text-xs">
-              G
-            </div>
-            <span className="text-sm font-mono font-bold uppercase tracking-widest">Ghosted</span>
-          </Link>
-          <button 
-            className="md:hidden text-muted-foreground hover:text-foreground p-1"
+      <aside className={`bg-sidebar text-[#EFEDE6] flex flex-col p-[22px_16px_20px] relative overflow-hidden z-50 fixed md:relative h-full w-[250px] transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
+        {/* Brand */}
+        <div className="flex items-center gap-[10px] p-[4px_6px_26px]">
+          <div className="w-[32px] h-[32px] rounded-[9px] bg-primary flex items-center justify-center shrink-0">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 2C7 2 4 6 4 11v9l3-2.5L9.5 20l2.5-2 2.5 2 2.5-2.5L20 20v-9c0-5-3-9-8-9z" fill="#F5F3EE" /><circle cx="9" cy="11" r="1.4" fill="#0E6B5C" /><circle cx="15" cy="11" r="1.4" fill="#0E6B5C" /></svg>
+          </div>
+          <div className="font-serif font-semibold text-[18px] tracking-[0.01em]">Ghosted</div>
+          <button
+            className="md:hidden ml-auto text-muted-foreground hover:text-white p-1"
             onClick={() => setIsMobileMenuOpen(false)}
           >
             <X className="w-5 h-5" />
@@ -127,127 +124,119 @@ export default function DashboardLayout({
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
-          {/* Main Links */}
-          <div className="space-y-1">
-            {navItems.map((item) => (
-              <NavLink key={item.href} {...item} pathname={pathname} onClick={() => setIsMobileMenuOpen(false)} />
+        <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar">
+          <div className="mb-[22px]">
+            {navItems.map((item, i) => (
+              <NavLink key={item.href} {...item} pathname={pathname} delayIndex={i} onClick={() => setIsMobileMenuOpen(false)} />
             ))}
           </div>
 
-          {/* Program Section */}
-          <div>
-            <h3 className="px-3 text-[10px] font-mono font-bold tracking-[0.2em] text-muted-foreground uppercase mb-2">Program</h3>
-            <div className="space-y-1">
-              {programItems.map((item) => (
-                <NavLink key={item.href} {...item} pathname={pathname} onClick={() => setIsMobileMenuOpen(false)} />
-              ))}
-            </div>
+          <div className="mb-[22px]">
+            <div className="text-[10.5px] tracking-[0.14em] text-[#726F7E] uppercase px-[10px] pb-[8px] font-semibold">Program</div>
+            {programItems.map((item, i) => (
+              <NavLink key={item.href} {...item} pathname={pathname} delayIndex={i + 4} onClick={() => setIsMobileMenuOpen(false)} />
+            ))}
           </div>
 
-          {/* Workspace Section */}
-          <div>
-            <h3 className="px-3 text-[10px] font-mono font-bold tracking-[0.2em] text-muted-foreground uppercase mb-2">Workspace</h3>
-            <div className="space-y-1">
-              {workspaceItems.map((item: any) => {
-                if (item.adminOnly && !isAdmin) return null;
-                if (item.superAdminOnly && !isSuperAdmin) return null;
-                return <NavLink key={item.href} {...item} pathname={pathname} onClick={() => setIsMobileMenuOpen(false)} />;
-              })}
-            </div>
+          <div className="mb-[22px]">
+            <div className="text-[10.5px] tracking-[0.14em] text-[#726F7E] uppercase px-[10px] pb-[8px] font-semibold">Workspace</div>
+            {workspaceItems.map((item: any, i) => {
+              if (item.adminOnly && !isAdmin) return null;
+              if (item.superAdminOnly && !isSuperAdmin) return null;
+              return <NavLink key={item.href} {...item} pathname={pathname} delayIndex={i + 7} onClick={() => setIsMobileMenuOpen(false)} />;
+            })}
           </div>
-        </nav>
-
-        {/* User Profile Footer */}
-        <div className="p-3 border-t border-border mt-auto shrink-0 bg-sidebar">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-               <button className="w-full flex items-center space-x-3 p-2 hover:bg-muted transition-colors text-left border border-transparent hover:border-border outline-none">
-                 <div className="h-8 w-8 bg-primary/10 text-primary flex items-center justify-center text-xs font-mono font-bold shrink-0">
-                   {userInitials}
-                 </div>
-                 <div className="flex flex-col min-w-0 flex-1">
-                   <span className="text-xs font-mono font-semibold uppercase tracking-tight text-foreground truncate">{session.user?.name || 'User'}</span>
-                   <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground truncate">
-                     {isAdmin ? 'Admin' : 'Org'}
-                   </span>
-                 </div>
-               </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56 rounded-none font-mono uppercase tracking-widest" align="start" side="right" sideOffset={8}>
-              <DropdownMenuLabel className="text-xs">My Account</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {!isStudent && (
-                <DropdownMenuItem onClick={() => router.push('/dashboard/settings')} className="text-[10px] cursor-pointer">
-                  Settings
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={async () => {
-                  await authClient.signOut();
-                  window.location.href = "/login";
-                }} 
-                className="text-[10px] text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer"
-              >
-                Sign out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
+
+        {/* User Profile */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex items-center gap-[10px] p-[12px_10px] border-t border-[#38363F] mt-[8px] hover:bg-[#201F27] transition-colors rounded-[8px] outline-none text-left w-full relative z-10">
+              <div className="w-[30px] h-[30px] rounded-full bg-secondary text-secondary-foreground flex items-center justify-center text-[12px] font-bold font-mono shrink-0">
+                {userInitials}
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-[13px] font-semibold text-[#EFEDE6] truncate">{session.user?.name || 'User'}</span>
+                <span className="text-[10.5px] text-[#8B889A] tracking-[0.05em] uppercase truncate">
+                  {isAdmin ? 'Admin' : 'Org'}
+                </span>
+              </div>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56 rounded-xl font-mono uppercase tracking-widest bg-card border-border shadow-sm p-1" align="center" side="right" sideOffset={12}>
+            <DropdownMenuItem onClick={() => router.push('/dashboard/account')} className="text-[10.5px] cursor-pointer font-bold px-3 py-2 rounded-lg hover:bg-muted focus:bg-muted">
+              My Account
+            </DropdownMenuItem>
+            <DropdownMenuSeparator className="bg-border my-1" />
+            {!isStudent && (
+              <DropdownMenuItem onClick={() => router.push('/dashboard/settings')} className="text-[10.5px] cursor-pointer px-3 py-2 rounded-lg hover:bg-muted focus:bg-muted">
+                Settings
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator className="bg-border my-1" />
+            <DropdownMenuItem
+              onClick={async () => {
+                await authClient.signOut();
+                window.location.href = "/login";
+              }}
+              className="text-[10.5px] text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer px-3 py-2 rounded-lg"
+            >
+              Sign out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <svg className="absolute -right-[18px] bottom-[60px] opacity-[0.055] pointer-events-none" width="180" height="180" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2C7 2 4 6 4 11v9l3-2.5L9.5 20l2.5-2 2.5 2 2.5-2.5L20 20v-9c0-5-3-9-8-9z" fill="#F5F3EE" />
+        </svg>
       </aside>
-      
+
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-10 bg-background w-full">
-        {/* Header */}
-        <header className="h-14 border-b border-border bg-card flex items-center justify-between px-4 sm:px-6 shrink-0 shadow-sm z-20 w-full">
-          <div className="flex items-center min-w-0">
-            <button 
-              className="md:hidden mr-3 sm:mr-4 text-muted-foreground hover:text-foreground shrink-0"
+      <main className="flex-1 flex flex-col relative z-10 w-full h-full overflow-hidden">
+        {/* Topbar */}
+        <header className="flex items-center justify-between py-[16px] px-[20px] md:px-[32px] border-b border-border bg-background shrink-0 w-full z-20">
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              className="md:hidden text-muted-foreground hover:text-foreground shrink-0"
               onClick={() => setIsMobileMenuOpen(true)}
             >
               <Menu className="w-5 h-5" />
             </button>
-            <div className="text-[11px] font-mono font-semibold uppercase tracking-widest text-muted-foreground truncate">
+            <div className="text-[11px] tracking-[0.14em] text-muted-foreground font-semibold uppercase truncate">
               {formattedBreadcrumbs || 'Dashboard'}
             </div>
           </div>
-          <div className="flex items-center space-x-4">
-            <div className="relative hidden lg:block">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input 
-                type="text" 
-                placeholder="SEARCH..." 
-                className="pl-9 pr-4 py-1.5 h-8 border border-input bg-background text-[11px] font-mono uppercase tracking-widest focus:outline-none focus:ring-1 focus:ring-ring w-48 transition-all focus:w-64"
+          <div className="flex items-center gap-[14px]">
+            <div className="hidden lg:flex items-center gap-[8px] bg-card border border-border rounded-[9px] px-[12px] py-[7px] w-[260px] text-muted-foreground text-[12.5px] focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.35-4.35" /></svg>
+              <input
+                type="text"
+                placeholder="Search projects, files, people..."
+                className="border-none outline-none bg-transparent font-sans text-[13px] w-full text-foreground placeholder:text-muted-foreground"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const query = e.currentTarget.value.trim();
+                    if (query) {
+                      router.push(`/dashboard/search?q=${encodeURIComponent(query)}`);
+                      setIsMobileMenuOpen(false);
+                    }
+                  }
+                }}
               />
-              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                <kbd className="hidden sm:inline-flex h-5 items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
-                  <span className="text-xs">⌘</span>K
-                </kbd>
-              </div>
+              <span className="font-mono text-[10px] bg-background border border-border rounded-[4px] px-[5px] py-[1px] text-muted-foreground">⌘K</span>
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="text-muted-foreground hover:text-foreground relative p-1.5 rounded-md hover:bg-muted transition-colors outline-none">
-                  <Bell className="w-4 h-4" />
-                  <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-primary rounded-full"></span>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-64 rounded-none font-mono" align="end" sideOffset={8}>
-                <DropdownMenuLabel className="uppercase tracking-widest text-xs">Notifications</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <div className="p-4 text-center text-muted-foreground text-[10px] uppercase tracking-widest">
-                  No new notifications
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
+
+            <div className="w-[34px] h-[34px] rounded-[9px] border border-border flex items-center justify-center relative bg-card shadow-sm cursor-pointer hover:border-primary/50 transition-colors">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></svg>
+              {/* Notification dot */}
+              <span className="absolute top-[8px] right-[8px] w-[6px] h-[6px] rounded-full bg-destructive shadow-sm"></span>
+            </div>
           </div>
         </header>
-        
-        <div className="flex-1 overflow-auto">
-          <div className="p-6">
-            {children}
-          </div>
+
+        <div className="flex-1 overflow-auto bg-background p-[20px] md:p-[32px] pt-[24px] md:pt-[40px]">
+          {children}
         </div>
       </main>
     </div>

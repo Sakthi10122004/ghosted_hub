@@ -3,8 +3,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { fetchApi } from "@/lib/api-client"
 import { useParams } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { ActivityFeed } from "@/components/activity-feed"
 import { ProjectChat } from "./_components/project-chat"
 
@@ -17,8 +15,12 @@ export default function ProjectOverviewPage() {
     queryFn: () => fetchApi<any>(`/projects/${id}`),
   })
 
-  if (isLoading) return <div className="p-8 text-center">Loading project details...</div>
-  if (!project) return <div className="p-8 text-center">Project not found.</div>
+  if (isLoading) return (
+    <div className="py-12 flex justify-center">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="animate-spin opacity-50"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+    </div>
+  )
+  if (!project) return <div className="py-12 text-center text-muted-foreground">Project not found.</div>
 
   const mockActivity = [
     { id: "1", title: "Project Created", description: "The project workspace was initialized.", timestamp: "2 days ago" },
@@ -26,59 +28,73 @@ export default function ProjectOverviewPage() {
   ]
 
   return (
-    <div className="grid gap-6 md:grid-cols-3">
-      <div className="md:col-span-2 space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Project Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+    <div className="grid gap-[22px] md:grid-cols-3">
+      
+      <div className="md:col-span-2 space-y-[22px]">
+        {/* Project Details */}
+        <div className="bg-card border border-border rounded-[14px] p-[24px_32px] opacity-0 animate-fade-up">
+          <div className="font-serif text-[19px] font-semibold mb-[20px] pb-[12px] border-b border-border">
+            Project Details
+          </div>
+          
+          <div className="space-y-[24px]">
             <div>
-              <h3 className="font-semibold">Description</h3>
-              <p className="text-muted-foreground">{project.description || "No description provided."}</p>
+              <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-[8px]">Description</h3>
+              <p className="text-[14px] text-foreground leading-relaxed">{project.description || "No description provided."}</p>
             </div>
-            <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+            
+            <div className="grid grid-cols-2 gap-[16px] pt-[16px] border-t border-border">
               <div>
-                <h3 className="font-semibold text-sm">Status</h3>
-                <Badge variant="outline" className="mt-1">{project.status}</Badge>
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-[8px]">Status</h3>
+                <div className="inline-flex items-center gap-[6px] px-[10px] py-[4px] rounded-[20px] text-[11.5px] font-semibold bg-[#E1EAE1] text-[#355940]">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6"><path d="M20 6L9 17l-5-5"/></svg>
+                  {project.status?.replace(/_/g, " ")}
+                </div>
               </div>
               <div>
-                <h3 className="font-semibold text-sm">Repository URL</h3>
-                <p className="text-sm text-primary hover:underline cursor-pointer">
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-[8px]">Repository URL</h3>
+                <p className="text-[13px] text-primary hover:underline cursor-pointer font-mono font-medium">
                   {project.githubRepoUrl || "Not set"}
                 </p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Project Chat Room */}
-        <ProjectChat projectId={id} />
+        <div className="opacity-0 animate-fade-up" style={{ animationDelay: '100ms' }}>
+          <ProjectChat projectId={id} />
+        </div>
       </div>
 
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Stakeholders</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+      <div className="space-y-[22px]">
+        {/* Stakeholders */}
+        <div className="bg-card border border-border rounded-[14px] p-[24px_32px] opacity-0 animate-fade-up" style={{ animationDelay: '50ms' }}>
+          <div className="font-serif text-[19px] font-semibold mb-[20px] pb-[12px] border-b border-border">
+            Stakeholders
+          </div>
+          
+          <div className="space-y-[16px]">
             <div>
-              <h3 className="text-sm font-semibold text-muted-foreground">Nonprofit</h3>
-              <p className="font-medium">{project.nonprofit?.name || "Not assigned"}</p>
+              <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-[4px]">Nonprofit</h3>
+              <p className="font-sans font-medium text-[14px] text-foreground">{project.nonprofit?.name || "Not assigned"}</p>
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-muted-foreground">Team</h3>
-              <p className="font-medium">{project.team?.name || "Not assigned"}</p>
+              <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-[4px]">Team</h3>
+              <p className="font-sans font-medium text-[14px] text-foreground">{project.team?.name || "Not assigned"}</p>
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-muted-foreground">Cohort</h3>
-              <p className="font-medium">{project.cohort?.name || "Not assigned"}</p>
+              <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-[4px]">Cohort</h3>
+              <p className="font-sans font-medium text-[14px] text-foreground">{project.cohort?.name || "Not assigned"}</p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
         
-        <ActivityFeed items={mockActivity} />
+        <div className="opacity-0 animate-fade-up" style={{ animationDelay: '150ms' }}>
+          <ActivityFeed items={mockActivity} />
+        </div>
       </div>
+      
     </div>
   )
 }
