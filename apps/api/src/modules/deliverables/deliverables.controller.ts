@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Param } from "@nestjs/common";
 import { DeliverablesService } from "./deliverables.service";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { ApiTags, ApiOperation } from "@nestjs/swagger";
-import type { DeliverableType } from "@prisma/client";
+import type { DeliverableType, DeliverableStatus } from "@prisma/client";
 
 @ApiTags("projects/deliverables")
 @Controller()
@@ -32,5 +32,16 @@ export class DeliverablesController {
     @CurrentUser() user: any
   ) {
     return this.deliverablesService.addVersion(id, user.id, data);
+  }
+
+  @Post("deliverables/:id/versions/:versionId/review")
+  @ApiOperation({ summary: "Review a deliverable version (Admin)" })
+  reviewVersion(
+    @Param("id") id: string,
+    @Param("versionId") versionId: string,
+    @Body() data: { status: DeliverableStatus; reviewNotes?: string },
+    @CurrentUser() user: any
+  ) {
+    return this.deliverablesService.reviewVersion(id, versionId, user.id, data);
   }
 }

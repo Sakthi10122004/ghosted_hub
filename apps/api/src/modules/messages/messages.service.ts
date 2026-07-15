@@ -1,16 +1,22 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
+import { AuditService } from "../audit/audit.service";
+import { AppGateway } from "../gateway/app.gateway";
 
 @Injectable()
 export class MessagesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditService: AuditService,
+    private readonly gateway: AppGateway
+  ) {}
 
   async create(projectId: string, authorId: string, data: { content: string }) {
     // Verify project exists
     const project = await this.prisma.project.findUnique({ where: { id: projectId } });
     if (!project) throw new NotFoundException("Project not found");
 
-    return this.prisma.message.create({
+    const message = await this.prisma.message.create({
       data: {
         projectId,
         authorId,
@@ -22,6 +28,19 @@ export class MessagesService {
         }
       }
     });
+
+    await this.auditService.createLog({
+      action: "message.create",
+      entityType: "Message",
+      entityId: message.id,
+      actorId: authorId,
+      metadata: { projectId },
+    });
+
+    // Broadcast to connected clients
+    this.gateway.emitMessageToProject(projectId, 'message.created', message);
+
+    return message;
   }
 
   async findAll(projectId: string, page = 1, limit = 50) {

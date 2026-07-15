@@ -2,12 +2,15 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { AuditService } from "../audit/audit.service";
 import type { Prisma, ProjectStatus } from "@prisma/client";
+import { SettingsService } from "../settings/settings.service";
+import * as nodemailer from "nodemailer";
 
 @Injectable()
 export class ProjectsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly auditService: AuditService
+    private readonly auditService: AuditService,
+    private readonly settingsService: SettingsService
   ) {}
 
   /** Create a project — typically called by the pairing engine */
@@ -170,8 +173,14 @@ export class ProjectsService {
   }
 
   async update(id: string, data: Prisma.ProjectUpdateInput) {
-    await this.findById(id); // Access check happens here if we passed user, but updates are admin only via roles guard usually
-    return this.prisma.project.update({ where: { id }, data });
+    const existingProject = await this.findById(id); // Access check happens here if we passed user, but updates are admin only via roles guard usually
+    const updated = await this.prisma.project.update({ where: { id }, data });
+
+    if (updated.teamId && updated.teamId !== existingProject.teamId) {
+      this.sendMappingEmails(id).catch(err => console.error("Failed to send mapping emails:", err));
+    }
+
+    return updated;
   }
 
   async updateStatus(id: string, status: ProjectStatus) {
@@ -198,6 +207,23 @@ export class ProjectsService {
     return updated;
   }
 
+  async remove(id: string) {
+    await this.findById(id); 
+    const deleted = await this.prisma.project.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+
+    await this.auditService.createLog({
+      action: 'project.delete',
+      entityType: 'Project',
+      entityId: id,
+      metadata: { name: deleted.name }
+    });
+
+    return { success: true, message: "Project deleted successfully" };
+  }
+
   /** Get project timeline */
   async getTimeline(projectId: string, params: { page?: number; limit?: number }) {
     const { page = 1, limit = 50 } = params;
@@ -211,5 +237,74 @@ export class ProjectsService {
     ]);
 
     return { data: events, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } };
+  }
+
+  private async sendMappingEmails(projectId: string) {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      include: {
+        team: {
+          include: {
+            members: { include: { user: true } }
+          }
+        },
+        nonprofit: {
+          include: {
+            contacts: { include: { user: true } }
+          }
+        }
+      }
+    });
+
+    if (!project || !project.team || !project.nonprofit) return;
+
+    const user = await this.settingsService.getSettingRaw("SMTP_USER");
+    const pass = await this.settingsService.getSettingRaw("SMTP_PASSWORD");
+
+    if (!user || !pass) {
+      console.warn("SMTP configuration missing. Skipping mapping emails.");
+      return;
+    }
+
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: { user, pass },
+    });
+
+    // Collect all emails
+    const studentEmails = project.team.members.map(m => m.user.email).filter(Boolean);
+    const npoEmails = project.nonprofit.contacts.map(c => c.user.email).filter(Boolean);
+
+    // Send to students
+    if (studentEmails.length > 0) {
+      await transporter.sendMail({
+        from: `"Ghosted Platform" <${user}>`,
+        to: studentEmails.join(","),
+        subject: "You've been mapped to a Nonprofit Project!",
+        html: `
+          <div style="font-family: sans-serif; padding: 20px;">
+            <h2>Great news!</h2>
+            <p>Your team <strong>${project.team.name}</strong> has been assigned to a project for <strong>${project.nonprofit.name}</strong>.</p>
+            <p>Log in to Ghosted to view the project details and say hello to your new nonprofit partner.</p>
+          </div>
+        `
+      });
+    }
+
+    // Send to NPOs
+    if (npoEmails.length > 0) {
+      await transporter.sendMail({
+        from: `"Ghosted Platform" <${user}>`,
+        to: npoEmails.join(","),
+        subject: "A Student Team has been mapped to your Project!",
+        html: `
+          <div style="font-family: sans-serif; padding: 20px;">
+            <h2>Great news!</h2>
+            <p>The student team <strong>${project.team.name}</strong> has been mapped to your project <strong>${project.name}</strong>.</p>
+            <p>Log in to Ghosted to meet your new student group and collaborate on the project.</p>
+          </div>
+        `
+      });
+    }
   }
 }

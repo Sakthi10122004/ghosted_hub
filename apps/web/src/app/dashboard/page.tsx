@@ -39,7 +39,15 @@ export default function DashboardPage() {
     enabled: isAdmin,
   });
 
+  const { data: activityData, isLoading: activityLoading } = useQuery({
+    queryKey: ["dashboard-activity"],
+    queryFn: () => fetchApi<{ data: any[] }>("/activity"),
+    enabled: !rolePending,
+    refetchInterval: 15000,
+  });
+
   const projects = projectsData?.data || [];
+  const activities = activityData?.data || [];
   const totalProjects = projects.length;
   const totalTeams = teamsData?.data?.length || 0;
   const totalCohorts = cohortsData?.data?.length || 0;
@@ -68,12 +76,7 @@ export default function DashboardPage() {
   };
 
   const attentionItems = projects.filter(p => ["BLOCKED", "REVISION", "INTERNAL_REVIEW"].includes(p.status)).slice(0, 3);
-  
-  // If no real attention items, provide some realistic fallbacks for visual testing of the rail
-  const displayAttention = attentionItems.length > 0 ? attentionItems : [
-    { id: '1', name: 'Second Chance Paws', status: 'BLOCKED', detail: 'deployment blocked, DNS not verified' },
-    { id: '2', name: 'Harbor Literacy Project', status: 'REVISION', detail: 'review overdue by 2 days' }
-  ];
+  const displayAttention = attentionItems;
 
   if (isLoading) {
     return <div className="h-[60vh] flex items-center justify-center text-muted-foreground font-mono text-sm uppercase tracking-widest">
@@ -116,31 +119,33 @@ export default function DashboardPage() {
       </div>
 
       {/* Signature: ATTENTION RAIL */}
-      <div className="bg-sidebar rounded-[16px] p-[20px_22px] mb-[22px] text-sidebar-foreground relative overflow-hidden opacity-0 animate-fade-up shadow-sm border border-border" style={{ animationDelay: '100ms' }}>
-        <div className="flex items-center justify-between gap-[10px] mb-[14px]">
-          <div className="flex items-center gap-[9px] text-[13px] font-semibold tracking-[0.02em] text-status-attention">
-            <span className="w-[7px] h-[7px] rounded-full bg-status-attention shadow-[0_0_0_0_rgba(181,132,42,0.5)] animate-[pulse_2.4s_infinite]"></span>
-            Needs your attention
-          </div>
-          <div className="font-mono text-[11px] text-sidebar-foreground/70">{displayAttention.length} open items</div>
-        </div>
-        <div className="flex flex-col gap-[2px]">
-          {displayAttention.map((item, i) => (
-            <div key={item.id} className="flex items-center justify-between p-[11px_4px] border-t border-sidebar-border text-[13.5px] opacity-0 animate-slide-in-right" style={{ animationDelay: `${i * 110 + 160}ms` }}>
-              <div className="flex items-center gap-[11px]">
-                <span className={`w-[8px] h-[8px] rounded-[2px] shrink-0 ${item.status === 'BLOCKED' ? 'bg-status-blocked animate-wiggle-infinite' : 'bg-status-attention'}`}></span>
-                <span>
-                  <span className="text-sidebar-foreground font-semibold">{item.name}</span>
-                  <span className="text-sidebar-foreground/60 ml-[6px]">— {item.detail || 'action required'}</span>
-                </span>
-              </div>
-              <Link href={`/dashboard/projects/${item.id}`} className="text-primary text-[12px] font-semibold whitespace-nowrap flex items-center gap-[4px] hover:text-primary/80 hover:gap-[8px] transition-all">
-                Resolve →
-              </Link>
+      {displayAttention.length > 0 && (
+        <div className="bg-sidebar rounded-[16px] p-[20px_22px] mb-[22px] text-sidebar-foreground relative overflow-hidden opacity-0 animate-fade-up shadow-sm border border-border" style={{ animationDelay: '100ms' }}>
+          <div className="flex items-center justify-between gap-[10px] mb-[14px]">
+            <div className="flex items-center gap-[9px] text-[13px] font-semibold tracking-[0.02em] text-status-attention">
+              <span className="w-[7px] h-[7px] rounded-full bg-status-attention shadow-[0_0_0_0_rgba(181,132,42,0.5)] animate-[pulse_2.4s_infinite]"></span>
+              Needs your attention
             </div>
-          ))}
+            <div className="font-mono text-[11px] text-sidebar-foreground/70">{displayAttention.length} open items</div>
+          </div>
+          <div className="flex flex-col gap-[2px]">
+            {displayAttention.map((item, i) => (
+              <div key={item.id} className="flex items-center justify-between p-[11px_4px] border-t border-sidebar-border text-[13.5px] opacity-0 animate-slide-in-right" style={{ animationDelay: `${i * 110 + 160}ms` }}>
+                <div className="flex items-center gap-[11px]">
+                  <span className={`w-[8px] h-[8px] rounded-[2px] shrink-0 ${item.status === 'BLOCKED' ? 'bg-status-blocked animate-wiggle-infinite' : 'bg-status-attention'}`}></span>
+                  <span>
+                    <span className="text-sidebar-foreground font-semibold">{item.name}</span>
+                    <span className="text-sidebar-foreground/60 ml-[6px]">— action required</span>
+                  </span>
+                </div>
+                <Link href={`/dashboard/projects/${item.id}`} className="text-primary text-[12px] font-semibold whitespace-nowrap flex items-center gap-[4px] hover:text-primary/80 hover:gap-[8px] transition-all">
+                  Resolve →
+                </Link>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* STAT ROW */}
       {isAdmin && (
@@ -265,27 +270,49 @@ export default function DashboardPage() {
           <div className="flex justify-between items-baseline mb-[14px]">
             <div className="font-serif text-[16px] font-semibold">Activity</div>
           </div>
-          <div className="bg-card border border-border rounded-[14px] p-[18px_20px] relative">
+          <div className="bg-card border border-border rounded-[14px] p-[18px_20px] relative min-h-[300px]">
             <svg width="2" height="88%" className="absolute left-[23px] top-[22px]">
               <line className="animate-dash" style={{ strokeDasharray: 200, strokeDashoffset: 200, animationDelay: '.6s' }} x1="1" y1="0" x2="1" y2="100%" stroke="var(--border)" strokeWidth="2"></line>
             </svg>
             
-            {[
-              { time: '09:42:03', text: 'File uploaded to', proj: 'Riverside Youth Alliance', extra: '— homepage-wireframe-v3.fig' },
-              { time: '08:15:41', text: 'Review approved on', proj: 'xyz', extra: '— Logo Concepts' },
-              { time: 'Yesterday · 22:03', text: 'Deliverable submitted on', proj: 'Harbor Literacy Project', extra: '' },
-              { time: 'Yesterday · 18:44', text: 'Discovery call scheduled for', proj: 'Second Chance Paws', extra: '' }
-            ].map((act, i) => (
-              <div key={i} className="flex gap-[10px] p-[11px_0] border-b border-dashed border-border last:border-0 opacity-0 animate-fade-up" style={{ animationDelay: `${i * 100 + 520}ms` }}>
-                <span className="w-[6px] h-[6px] rounded-full bg-primary mt-[6px] shrink-0 opacity-0 animate-pop-in" style={{ animationDelay: `${i * 100 + 620}ms` }}></span>
-                <div>
-                  <div className="font-mono text-[10.5px] text-muted-foreground">{act.time}</div>
-                  <div className="text-[12.5px] text-foreground mt-[2px] leading-snug">
-                    {act.text} <span className="text-secondary-foreground font-semibold">{act.proj}</span> {act.extra}
-                  </div>
-                </div>
+            {activityLoading ? (
+              <div className="p-8 flex justify-center">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="animate-spin text-muted-foreground"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
               </div>
-            ))}
+            ) : activities.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground text-sm flex flex-col items-center">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="opacity-20 mb-3"><path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 100-16 8 8 0 000 16zm-1-7.5v-5h2v5h-2zm0 2h2v2h-2v-2z" fill="currentColor"/></svg>
+                No recent activity.
+              </div>
+            ) : (
+              <div className="flex flex-col gap-5 pl-8 relative z-10">
+                {activities.map((act: any, idx: number) => {
+                  let colorClass = "text-muted-foreground";
+                  if (act.action.includes('review')) {
+                    colorClass = "text-status-on-track";
+                  } else if (act.action.includes('project')) {
+                    colorClass = "text-primary";
+                  }
+
+                  return (
+                    <div key={act.id} className="flex gap-4 opacity-0 animate-fade-up group" style={{ animationDelay: `${idx * 80 + 300}ms` }}>
+                      <div className={`absolute left-[5px] w-[6px] h-[6px] rounded-full mt-1.5 ring-4 ring-card ${colorClass === 'text-muted-foreground' ? 'bg-border' : `bg-current ${colorClass}`}`} />
+                      <div className="flex flex-col min-w-0">
+                        <div className="text-[13px] font-medium text-foreground truncate">
+                          {act.action.replace(/\./g, ' ').replace(/_/g, ' ')}
+                        </div>
+                        <div className="text-[11.5px] text-muted-foreground truncate mt-0.5">
+                          by {act.user?.name || "System"} {act.entityType ? `on ${act.entityType}` : ""}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground/60 font-mono mt-1 uppercase">
+                          {format(new Date(act.createdAt), "MMM d, h:mm a")}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>

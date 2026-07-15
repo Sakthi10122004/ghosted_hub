@@ -43,4 +43,27 @@ export class AuditService {
       }
     });
   }
+
+  async getActivityFeed(user: any) {
+    const isAdmin = user.roles?.some((r: any) => r.role === "SUPER_ADMIN" || r.role === "ORGANIZER");
+    
+    // Filter out noisy events like auth.login
+    const filter = {
+      action: { notIn: ["auth.login", "auth.logout", "file.downloaded"] },
+      ...(isAdmin ? {} : { userId: user.id })
+    };
+
+    const logs = await this.prisma.auditLog.findMany({
+      where: filter,
+      take: 20,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: {
+          select: { name: true }
+        }
+      }
+    });
+
+    return { data: logs };
+  }
 }

@@ -1,13 +1,25 @@
 import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import type { Prisma, UserRole } from "@prisma/client";
+import { AuditService } from "../audit/audit.service";
 
 @Injectable()
 export class TeamsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditService: AuditService
+  ) {}
 
-  async create(data: { name: string; cohortId: string; capacity?: number }) {
-    return this.prisma.team.create({ data });
+  async create(data: { name: string; cohortId: string; capacity?: number }, actorId?: string) {
+    const team = await this.prisma.team.create({ data });
+    await this.auditService.createLog({
+      action: "team.create",
+      entityType: "Team",
+      entityId: team.id,
+      actorId,
+      metadata: { name: team.name, cohortId: team.cohortId },
+    });
+    return team;
   }
 
   async findAll(params: { page?: number; limit?: number; cohortId?: string; search?: string }, user?: any) {
@@ -82,19 +94,38 @@ export class TeamsService {
     if (activeMembers.length >= team.capacity) {
       throw new BadRequestException("Team is at full capacity");
     }
-    return this.prisma.teamMember.create({
+    const member = await this.prisma.teamMember.create({
       data: { teamId, userId, role },
       include: {
         user: { select: { id: true, name: true, email: true, avatarUrl: true } },
       },
     });
+
+    await this.auditService.createLog({
+      action: "team.member_added",
+      entityType: "Team",
+      entityId: teamId,
+      metadata: { userId, role },
+    });
+
+    return member;
   }
 
-  async removeMember(teamId: string, userId: string) {
-    return this.prisma.teamMember.update({
+  async removeMember(teamId: string, userId: string, actorId?: string) {
+    const removed = await this.prisma.teamMember.update({
       where: { teamId_userId: { teamId, userId } },
       data: { leftAt: new Date() },
     });
+
+    await this.auditService.createLog({
+      action: "team.member_removed",
+      entityType: "Team",
+      entityId: teamId,
+      actorId,
+      metadata: { userId },
+    });
+
+    return removed;
   }
 
   async setMemberRole(teamId: string, userId: string, role: UserRole) {
@@ -110,25 +141,54 @@ export class TeamsService {
       });
     }
 
-    return this.prisma.teamMember.update({
+    const updatedMember = await this.prisma.teamMember.update({
       where: { teamId_userId: { teamId, userId } },
       data: { role },
       include: {
         user: { select: { id: true, name: true, email: true, avatarUrl: true } },
       },
     });
+
+    await this.auditService.createLog({
+      action: "team.member_role_changed",
+      entityType: "Team",
+      entityId: teamId,
+      metadata: { userId, newRole: role },
+    });
+
+    return updatedMember;
   }
 
-  async update(id: string, data: Prisma.TeamUpdateInput) {
+  async update(id: string, data: Prisma.TeamUpdateInput, actorId?: string) {
     await this.findById(id);
-    return this.prisma.team.update({ where: { id }, data });
+    const updated = await this.prisma.team.update({ where: { id }, data });
+
+    await this.auditService.createLog({
+      action: "team.update",
+      entityType: "Team",
+      entityId: id,
+      actorId,
+      metadata: { updatedFields: Object.keys(data) },
+    });
+
+    return updated;
   }
 
-  async softDelete(id: string) {
-    await this.findById(id);
-    return this.prisma.team.update({
+  async softDelete(id: string, actorId?: string) {
+    const team = await this.findById(id);
+    const deleted = await this.prisma.team.update({
       where: { id },
       data: { deletedAt: new Date() },
     });
+
+    await this.auditService.createLog({
+      action: "team.delete",
+      entityType: "Team",
+      entityId: id,
+      actorId,
+      metadata: { name: team.name },
+    });
+
+    return deleted;
   }
 }

@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { fetchApi } from "@/lib/api-client"
 import { Building2 } from "lucide-react"
+import Link from "next/link"
 import { CreateNonprofitDialog } from "./_components/create-nonprofit-dialog"
 import { EditNonprofitDialog } from "./_components/edit-nonprofit-dialog"
 import { useUserRole } from "@/hooks/use-user-role"
@@ -92,9 +93,9 @@ export default function NonprofitsPage() {
                 <div className="text-right">
                   <div className="flex items-center justify-end gap-[8px] opacity-0 group-hover:opacity-100 transition-opacity">
                     {isAdmin && <EditNonprofitDialog nonprofit={np} />}
-                    <button className="text-[12px] font-semibold text-primary hover:underline">
+                    <Link href={`/dashboard/nonprofits/${np.id}`} className="text-[12px] font-semibold text-primary hover:underline">
                       View Profile
-                    </button>
+                    </Link>
                   </div>
                 </div>
               </div>

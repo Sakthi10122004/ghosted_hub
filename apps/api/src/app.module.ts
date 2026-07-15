@@ -8,6 +8,8 @@ import { NonprofitsModule } from "./modules/nonprofits/nonprofits.module";
 import { TeamsModule } from "./modules/teams/teams.module";
 import { ProjectsModule } from "./modules/projects/projects.module";
 import { AuditModule } from "./modules/audit/audit.module";
+import { GatewayModule } from "./modules/gateway/gateway.module";
+import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { FilesModule } from './modules/files/files.module';
@@ -39,6 +41,8 @@ import { DeliverablesModule } from './modules/deliverables/deliverables.module';
     TeamsModule,
     ProjectsModule,
     AuditModule,
+    GatewayModule,
+    NotificationsModule,
     ReviewsModule,
     FilesModule,
     DeploymentsModule,

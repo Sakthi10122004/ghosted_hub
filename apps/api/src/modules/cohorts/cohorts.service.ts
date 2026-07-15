@@ -6,13 +6,25 @@ import {
 import { PrismaService } from "../../common/prisma/prisma.service";
 import type { CohortStatus, Prisma } from "@prisma/client";
 import { COHORT_STATUS_FLOW } from "@ghosted/shared";
+import { AuditService } from "../audit/audit.service";
 
 @Injectable()
 export class CohortsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditService: AuditService
+  ) {}
 
-  async create(data: Prisma.CohortCreateInput) {
-    return this.prisma.cohort.create({ data });
+  async create(data: Prisma.CohortCreateInput, actorId?: string) {
+    const cohort = await this.prisma.cohort.create({ data });
+    await this.auditService.createLog({
+      action: "cohort.create",
+      entityType: "Cohort",
+      entityId: cohort.id,
+      actorId,
+      metadata: { name: cohort.name },
+    });
+    return cohort;
   }
 
   async findAll(params: { page?: number; limit?: number; status?: string }, user?: any) {
@@ -61,9 +73,17 @@ export class CohortsService {
     return cohort;
   }
 
-  async update(id: string, data: Prisma.CohortUpdateInput) {
+  async update(id: string, data: Prisma.CohortUpdateInput, actorId?: string) {
     await this.findById(id);
-    return this.prisma.cohort.update({ where: { id }, data });
+    const updated = await this.prisma.cohort.update({ where: { id }, data });
+    await this.auditService.createLog({
+      action: "cohort.update",
+      entityType: "Cohort",
+      entityId: id,
+      actorId,
+      metadata: { updatedFields: Object.keys(data) },
+    });
+    return updated;
   }
 
   async transitionStatus(id: string, newStatus: CohortStatus) {
@@ -84,17 +104,32 @@ export class CohortsService {
       );
     }
 
-    return this.prisma.cohort.update({
+    const updated = await this.prisma.cohort.update({
       where: { id },
       data: { status: newStatus },
     });
+    await this.auditService.createLog({
+      action: "cohort.status_change",
+      entityType: "Cohort",
+      entityId: id,
+      metadata: { from: cohort.status, to: newStatus },
+    });
+    return updated;
   }
 
-  async softDelete(id: string) {
-    await this.findById(id);
-    return this.prisma.cohort.update({
+  async softDelete(id: string, actorId?: string) {
+    const cohort = await this.findById(id);
+    const deleted = await this.prisma.cohort.update({
       where: { id },
       data: { deletedAt: new Date() },
     });
+    await this.auditService.createLog({
+      action: "cohort.delete",
+      entityType: "Cohort",
+      entityId: id,
+      actorId,
+      metadata: { name: cohort.name },
+    });
+    return deleted;
   }
 }

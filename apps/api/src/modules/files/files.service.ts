@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
 
 @Injectable()
 export class FilesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditService: AuditService
+  ) {}
 
   async findAll(projectId: string, user?: any) {
     // For this implementation, fetch all files scoped to the project
@@ -31,6 +35,15 @@ export class FilesService {
           uploadedById: user.id,
         },
       });
+
+      await this.auditService.createLog({
+        action: 'file.upload',
+        entityType: 'ProjectFile',
+        entityId: file.id,
+        actorId: user.id,
+        metadata: { name: file.name, projectId },
+      });
+
       return { data: file };
     } catch (e) {
       console.error("Failed to link file to project", e);

@@ -1,13 +1,25 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import type { Prisma } from "@prisma/client";
+import { AuditService } from "../audit/audit.service";
 
 @Injectable()
 export class NonprofitsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditService: AuditService
+  ) {}
 
-  async create(data: Prisma.NonprofitCreateInput) {
-    return this.prisma.nonprofit.create({ data });
+  async create(data: Prisma.NonprofitCreateInput, actorId?: string) {
+    const nonprofit = await this.prisma.nonprofit.create({ data });
+    await this.auditService.createLog({
+      action: "nonprofit.create",
+      entityType: "Nonprofit",
+      entityId: nonprofit.id,
+      actorId,
+      metadata: { name: nonprofit.name },
+    });
+    return nonprofit;
   }
 
   async findAll(params: { page?: number; limit?: number; search?: string }, user?: any) {
@@ -56,13 +68,29 @@ export class NonprofitsService {
     return nonprofit;
   }
 
-  async update(id: string, data: Prisma.NonprofitUpdateInput) {
+  async update(id: string, data: Prisma.NonprofitUpdateInput, actorId?: string) {
     await this.findById(id);
-    return this.prisma.nonprofit.update({ where: { id }, data });
+    const updated = await this.prisma.nonprofit.update({ where: { id }, data });
+    await this.auditService.createLog({
+      action: "nonprofit.update",
+      entityType: "Nonprofit",
+      entityId: id,
+      actorId,
+      metadata: { updatedFields: Object.keys(data) },
+    });
+    return updated;
   }
 
-  async softDelete(id: string) {
-    await this.findById(id);
-    return this.prisma.nonprofit.update({ where: { id }, data: { deletedAt: new Date() } });
+  async softDelete(id: string, actorId?: string) {
+    const nonprofit = await this.findById(id);
+    const deleted = await this.prisma.nonprofit.update({ where: { id }, data: { deletedAt: new Date() } });
+    await this.auditService.createLog({
+      action: "nonprofit.delete",
+      entityType: "Nonprofit",
+      entityId: id,
+      actorId,
+      metadata: { name: nonprofit.name },
+    });
+    return deleted;
   }
 }

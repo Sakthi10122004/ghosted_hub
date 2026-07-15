@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi } from "@/lib/api-client";
 import { useUserRole } from "@/hooks/use-user-role";
 import { authClient } from "@/lib/auth-client";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Check, Bell } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -69,8 +71,27 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const queryClient = useQueryClient();
   const { session, isPending, isStudent, isAdmin, isSuperAdmin } = useUserRole();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const { data: notifData } = useQuery({
+    queryKey: ["notifications"],
+    queryFn: () => fetchApi<{ data: any[] }>("/notifications"),
+    enabled: !!session,
+    refetchInterval: 10000, // Poll every 10s for new notifications
+  });
+
+  const notifications = notifData?.data || [];
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+  const markReadMutation = useMutation({
+    mutationFn: (id: string) =>
+      fetchApi(`/notifications/${id}/read`, { method: "PATCH" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
@@ -111,10 +132,10 @@ export default function DashboardLayout({
       <aside className={`bg-sidebar text-[#EFEDE6] flex flex-col p-[22px_16px_20px] relative overflow-hidden z-50 fixed md:relative h-full w-[250px] transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
         {/* Brand */}
         <div className="flex items-center gap-[10px] p-[4px_6px_26px]">
-          <div className="w-[32px] h-[32px] rounded-[9px] bg-primary flex items-center justify-center shrink-0">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 2C7 2 4 6 4 11v9l3-2.5L9.5 20l2.5-2 2.5 2 2.5-2.5L20 20v-9c0-5-3-9-8-9z" fill="#F5F3EE" /><circle cx="9" cy="11" r="1.4" fill="#0E6B5C" /><circle cx="15" cy="11" r="1.4" fill="#0E6B5C" /></svg>
+          <div className="w-[34px] h-[34px] rounded-[10px] overflow-hidden bg-white flex items-center justify-center shrink-0 border border-white/10 shadow-sm relative group cursor-pointer">
+            <img src="/logo.jpg" alt="Ghosted Logo" className="w-[120%] h-[120%] object-cover object-center transform group-hover:scale-110 transition-transform duration-300" />
           </div>
-          <div className="font-serif font-semibold text-[18px] tracking-[0.01em]">Ghosted</div>
+          <div className="font-serif font-semibold text-[20px] tracking-wide text-white">Ghosted</div>
           <button
             className="md:hidden ml-auto text-muted-foreground hover:text-white p-1"
             onClick={() => setIsMobileMenuOpen(false)}
@@ -131,21 +152,25 @@ export default function DashboardLayout({
             ))}
           </div>
 
-          <div className="mb-[22px]">
-            <div className="text-[10.5px] tracking-[0.14em] text-[#726F7E] uppercase px-[10px] pb-[8px] font-semibold">Program</div>
-            {programItems.map((item, i) => (
-              <NavLink key={item.href} {...item} pathname={pathname} delayIndex={i + 4} onClick={() => setIsMobileMenuOpen(false)} />
-            ))}
-          </div>
+          {isAdmin && (
+            <div className="mb-[22px]">
+              <div className="text-[10.5px] tracking-[0.14em] text-[#726F7E] uppercase px-[10px] pb-[8px] font-semibold">Program</div>
+              {programItems.map((item, i) => (
+                <NavLink key={item.href} {...item} pathname={pathname} delayIndex={i + 4} onClick={() => setIsMobileMenuOpen(false)} />
+              ))}
+            </div>
+          )}
 
-          <div className="mb-[22px]">
-            <div className="text-[10.5px] tracking-[0.14em] text-[#726F7E] uppercase px-[10px] pb-[8px] font-semibold">Workspace</div>
-            {workspaceItems.map((item: any, i) => {
-              if (item.adminOnly && !isAdmin) return null;
-              if (item.superAdminOnly && !isSuperAdmin) return null;
-              return <NavLink key={item.href} {...item} pathname={pathname} delayIndex={i + 7} onClick={() => setIsMobileMenuOpen(false)} />;
-            })}
-          </div>
+          {isAdmin && (
+            <div className="mb-[22px]">
+              <div className="text-[10.5px] tracking-[0.14em] text-[#726F7E] uppercase px-[10px] pb-[8px] font-semibold">Workspace</div>
+              {workspaceItems.map((item: any, i) => {
+                if (item.adminOnly && !isAdmin) return null;
+                if (item.superAdminOnly && !isSuperAdmin) return null;
+                return <NavLink key={item.href} {...item} pathname={pathname} delayIndex={i + 7} onClick={() => setIsMobileMenuOpen(false)} />;
+              })}
+            </div>
+          )}
         </div>
 
         {/* User Profile */}
@@ -227,11 +252,61 @@ export default function DashboardLayout({
               <span className="font-mono text-[10px] bg-background border border-border rounded-[4px] px-[5px] py-[1px] text-muted-foreground">⌘K</span>
             </div>
 
-            <div className="w-[34px] h-[34px] rounded-[9px] border border-border flex items-center justify-center relative bg-card shadow-sm cursor-pointer hover:border-primary/50 transition-colors">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></svg>
-              {/* Notification dot */}
-              <span className="absolute top-[8px] right-[8px] w-[6px] h-[6px] rounded-full bg-destructive shadow-sm"></span>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <div className="w-[34px] h-[34px] rounded-[9px] border border-border flex items-center justify-center relative bg-card shadow-sm cursor-pointer hover:border-primary/50 transition-colors">
+                  <Bell className="w-4 h-4 text-foreground" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-[6px] right-[6px] w-[8px] h-[8px] rounded-full bg-destructive shadow-sm border border-card flex items-center justify-center">
+                    </span>
+                  )}
+                </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80 p-0 overflow-hidden border-border bg-card shadow-lg rounded-xl">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/20">
+                  <span className="text-sm font-semibold text-foreground">Notifications</span>
+                  {unreadCount > 0 && <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full font-mono">{unreadCount} new</span>}
+                </div>
+                <div className="max-h-[300px] overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <div className="p-6 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
+                      <Bell className="w-8 h-8 opacity-20" />
+                      No notifications yet
+                    </div>
+                  ) : (
+                    notifications.map((notif: any) => (
+                      <div
+                        key={notif.id}
+                        onClick={() => {
+                          if (!notif.isRead) markReadMutation.mutate(notif.id);
+                          if (notif.link) router.push(notif.link);
+                        }}
+                        className={`flex gap-3 p-4 border-b border-border/50 cursor-pointer hover:bg-muted/30 transition-colors ${!notif.isRead ? 'bg-primary/5' : ''}`}
+                      >
+                        <div className="mt-0.5 shrink-0">
+                          {!notif.isRead ? (
+                            <div className="w-2 h-2 rounded-full bg-primary mt-1.5 shadow-[0_0_8px_var(--primary)]" />
+                          ) : (
+                            <Check className="w-4 h-4 text-muted-foreground" />
+                          )}
+                        </div>
+                        <div className="flex flex-col gap-1 min-w-0">
+                          <span className={`text-sm ${!notif.isRead ? 'font-semibold text-foreground' : 'font-medium text-muted-foreground'}`}>
+                            {notif.title}
+                          </span>
+                          <span className="text-xs text-muted-foreground/80 line-clamp-2 leading-relaxed">
+                            {notif.message}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground/60 font-mono mt-1">
+                            {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
 

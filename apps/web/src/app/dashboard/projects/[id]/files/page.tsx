@@ -24,7 +24,7 @@ export default function ProjectFilesPage() {
   const queryClient = useQueryClient();
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [fileName, setFileName] = useState("");
-  const [fileUrl, setFileUrl] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["files", projectId],
@@ -43,14 +43,22 @@ export default function ProjectFilesPage() {
       queryClient.invalidateQueries({ queryKey: ["files", projectId] });
       setIsUploadOpen(false);
       setFileName("");
-      setFileUrl("");
+      setSelectedFile(null);
     },
   });
 
   const handleUpload = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fileName.trim() || !fileUrl.trim()) return;
-    uploadMutation.mutate({ name: fileName, fileUrl, category: "DOCUMENT" });
+    if (!selectedFile) return;
+    
+    // Fallback name if somehow empty
+    const finalName = fileName.trim() || selectedFile.name;
+    
+    // In a real app, this would upload to S3.
+    // For now, we just create a local object URL or a dummy string if that fails.
+    const url = URL.createObjectURL(selectedFile);
+    
+    uploadMutation.mutate({ name: finalName, fileUrl: url, category: "DOCUMENT" });
   };
 
   if (isLoading) return <div className="p-8 text-center text-muted-foreground"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></div>;
@@ -69,27 +77,33 @@ export default function ProjectFilesPage() {
             </DialogHeader>
             <form onSubmit={handleUpload} className="space-y-4 pt-4">
               <div className="space-y-2">
+                <Label htmlFor="fileUpload">Select File</Label>
+                <Input
+                  id="fileUpload"
+                  type="file"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setSelectedFile(file);
+                      if (!fileName) setFileName(file.name);
+                    } else {
+                      setSelectedFile(null);
+                    }
+                  }}
+                  className="cursor-pointer file:text-primary file:font-semibold file:border-0 file:bg-primary/10 hover:file:bg-primary/20 file:mr-4 file:px-4 file:py-1 file:rounded-md"
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="fileName">File Name</Label>
                 <Input
                   id="fileName"
                   placeholder="e.g. Design Mockups v1"
                   value={fileName}
                   onChange={(e) => setFileName(e.target.value)}
-                  autoFocus
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="fileUrl">File URL (Mock Upload)</Label>
-                <Input
-                  id="fileUrl"
-                  placeholder="https://example.com/mockup.pdf"
-                  value={fileUrl}
-                  onChange={(e) => setFileUrl(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">Until S3 is configured, please provide a direct URL to the file.</p>
               </div>
               <div className="flex justify-end">
-                <Button type="submit" disabled={!fileName.trim() || !fileUrl.trim() || uploadMutation.isPending}>
+                <Button type="submit" disabled={!selectedFile || uploadMutation.isPending}>
                   {uploadMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Upload
                 </Button>

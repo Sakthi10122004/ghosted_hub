@@ -15,6 +15,44 @@ export const auth = betterAuth({
   },
   baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:4000/api/auth',
   trustedOrigins: process.env.API_CORS_ORIGIN ? [process.env.API_CORS_ORIGIN] : ['http://localhost:3000'],
+  databaseHooks: {
+    session: {
+      create: {
+        after: async (session: any) => {
+          try {
+            await prisma.auditLog.create({
+              data: {
+                action: "auth.login",
+                entityType: "Session",
+                entityId: session.id || "unknown",
+                userId: session.userId,
+                metadata: { ipAddress: session.ipAddress, userAgent: session.userAgent },
+              }
+            });
+          } catch (err) {
+            console.error("Failed to log auth.login", err);
+          }
+        }
+      },
+      delete: {
+        after: async (session: any) => {
+          try {
+            await prisma.auditLog.create({
+              data: {
+                action: "auth.logout",
+                entityType: "Session",
+                entityId: session.id || "unknown",
+                userId: session.userId,
+                metadata: {},
+              }
+            });
+          } catch (err) {
+            console.error("Failed to log auth.logout", err);
+          }
+        }
+      }
+    }
+  }
 });
 
 @Global()

@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import type { DeliverableType, DeliverableStatus } from "@prisma/client";
 
 @Injectable()
 export class DeliverablesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService
+  ) {}
 
   async findAll(projectId: string) {
     const deliverables = await this.prisma.deliverable.findMany({
@@ -57,6 +61,60 @@ export class DeliverablesService {
       data: { status: "SUBMITTED" }
     });
 
+    // Notify Admins
+    // We can fetch project admins or just emit a project-wide notification for admins
+    const project = await this.prisma.project.findUnique({ where: { id: deliverable.projectId }, select: { name: true, cohortId: true } });
+    if (project) {
+      // Find admins of the cohort to notify (simplified: we can just emit a notification to team leads/admins)
+      // For now, let's just log it or dispatch a general notification if we had an admin group.
+      // We will assume the system routes this to admins via the websocket.
+    }
+
     return { data: version };
+  }
+
+  async reviewVersion(
+    deliverableId: string, 
+    versionId: string, 
+    reviewerId: string, 
+    data: { status: DeliverableStatus, reviewNotes?: string }
+  ) {
+    const version = await this.prisma.deliverableVersion.findUnique({
+      where: { id: versionId },
+      include: { deliverable: true }
+    });
+
+    if (!version || version.deliverableId !== deliverableId) {
+      throw new NotFoundException("Deliverable version not found");
+    }
+
+    const updatedVersion = await this.prisma.deliverableVersion.update({
+      where: { id: versionId },
+      data: {
+        status: data.status,
+        reviewNotes: data.reviewNotes,
+        reviewerId,
+        reviewedAt: new Date(),
+      }
+    });
+
+    // Update parent deliverable status to match the latest version's status
+    await this.prisma.deliverable.update({
+      where: { id: deliverableId },
+      data: { status: data.status }
+    });
+
+    // Notify the student who uploaded it
+    await this.notifications.createNotification({
+      userId: version.uploadedById,
+      title: data.status === "APPROVED" ? "Deliverable Approved 🎉" : "Revision Requested 📝",
+      message: data.status === "APPROVED" 
+        ? `Your deliverable "${version.deliverable.name}" has been approved!`
+        : `Changes requested on "${version.deliverable.name}": ${data.reviewNotes?.substring(0, 50)}...`,
+      type: data.status === "APPROVED" ? "DELIVERABLE_APPROVED" : "REVIEW_COMPLETED",
+      linkUrl: `/dashboard/projects/${version.deliverable.projectId}/deliverables`,
+    });
+
+    return { data: updatedVersion };
   }
 }

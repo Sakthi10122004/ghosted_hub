@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Param, Body, Query } from "@nestjs/common";
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query } from "@nestjs/common";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { ApiTags, ApiOperation, ApiQuery } from "@nestjs/swagger";
 import { ProjectsService } from "./projects.service";
@@ -48,5 +48,11 @@ export class ProjectsController {
   @ApiOperation({ summary: "Get project timeline" })
   getTimeline(@Param("id") id: string, @Query("page") page?: number, @Query("limit") limit?: number) {
     return this.projectsService.getTimeline(id, { page, limit });
+  }
+
+  @Delete(":id")
+  @ApiOperation({ summary: "Soft delete project" })
+  remove(@Param("id") id: string) {
+    return this.projectsService.remove(id);
   }
 }

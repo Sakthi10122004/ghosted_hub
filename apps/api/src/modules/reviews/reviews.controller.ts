@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Param } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, UseGuards, Param } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ReviewsService } from './reviews.service';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
@@ -13,6 +13,13 @@ import { UserRole } from '@prisma/client';
 export class ReviewsController {
   constructor(private readonly reviewsService: ReviewsService) {}
 
+  @Get('reviews')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ORGANIZER, UserRole.STUDENT, UserRole.NONPROFIT_REP, UserRole.MENTOR, UserRole.TEAM_LEAD)
+  @ApiOperation({ summary: 'Get all reviews (scoped by user role)' })
+  findAllGlobal(@CurrentUser() user?: any) {
+    return this.reviewsService.findAllGlobal(user);
+  }
+
   @Get('projects/:projectId/reviews')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORGANIZER, UserRole.STUDENT, UserRole.NONPROFIT_REP, UserRole.MENTOR, UserRole.TEAM_LEAD)
   @ApiOperation({ summary: 'Get all reviews for a project' })
@@ -25,5 +32,12 @@ export class ReviewsController {
   @ApiOperation({ summary: 'Create a review for a project' })
   create(@Param("projectId") projectId: string, @Body() data: any) {
     return this.reviewsService.create(projectId, data);
+  }
+
+  @Patch('projects/:projectId/reviews/:id')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ORGANIZER, UserRole.MENTOR, UserRole.TEAM_LEAD, UserRole.STUDENT)
+  @ApiOperation({ summary: 'Update a review (Admin & Student Resubmission)' })
+  update(@Param("projectId") projectId: string, @Param("id") id: string, @Body() data: any, @CurrentUser() user?: any) {
+    return this.reviewsService.update(projectId, id, data, user?.id);
   }
 }

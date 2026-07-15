@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { fetchApi } from "@/lib/api-client";
 import { useUserRole } from "@/hooks/use-user-role";
@@ -16,9 +17,9 @@ import {
 } from "lucide-react";
 
 // ── Constants ──────────────────────────────────────────────────────────────
-const REVIEW_STAGES = ["Submitted", "In Review", "Needs Changes", "Resubmitted", "Approved"] as const;
+const REVIEW_STAGES = ["Submitted", "Needs Changes", "Resubmitted", "Approved"] as const;
 type ReviewStage = typeof REVIEW_STAGES[number];
-const FILTER_TABS = ["All", "Submitted", "In Review", "Needs Changes", "Resubmitted", "Approved"] as const;
+const FILTER_TABS = ["All", "Submitted", "Needs Changes", "Resubmitted", "Approved"] as const;
 
 export default function ReviewsPage() {
   const [activeFilter, setActiveFilter] = useState<string>("All");
@@ -33,8 +34,18 @@ export default function ReviewsPage() {
 
   const reviews = reviewsData?.data || [];
 
+  const getStageFromStatus = (status: string) => {
+    switch(status) {
+      case "SUBMITTED": return "Submitted";
+      case "RESUBMITTED": return "Resubmitted";
+      case "REVISION": return "Needs Changes";
+      case "APPROVED": return "Approved";
+      default: return "Submitted";
+    }
+  };
+
   const filteredReviews = reviews.filter((r: any) => {
-    const stage = r.status || "Submitted";
+    const stage = getStageFromStatus(r.status);
     const matchesFilter = activeFilter === "All" || stage === activeFilter;
     const matchesSearch = searchQuery === "" ||
       (r.title && r.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -43,7 +54,7 @@ export default function ReviewsPage() {
   });
 
   const stageCounts = REVIEW_STAGES.reduce((acc, stage) => {
-    acc[stage] = reviews.filter((r: any) => (r.status || "Submitted") === stage).length;
+    acc[stage] = reviews.filter((r: any) => getStageFromStatus(r.status) === stage).length;
     return acc;
   }, {} as Record<string, number>);
 
@@ -66,10 +77,9 @@ export default function ReviewsPage() {
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-[16px] mb-[34px]">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-[16px] mb-[34px]">
         {[
           { label: "Pending", value: (stageCounts["Submitted"] || 0) + (stageCounts["Resubmitted"] || 0), icon: <Clock className="w-4 h-4"/> },
-          { label: "In Progress", value: stageCounts["In Review"] || 0, icon: <Eye className="w-4 h-4"/> },
           { label: "Needs Changes", value: stageCounts["Needs Changes"] || 0, icon: <AlertTriangle className="w-4 h-4"/> },
           { label: "Approved", value: stageCounts["Approved"] || 0, icon: <CheckCircle2 className="w-4 h-4"/> },
         ].map((stat, i) => (
@@ -160,11 +170,12 @@ export default function ReviewsPage() {
             </div>
           ) : (
             filteredReviews.map((review: any) => {
-              const stage = review.status || "Submitted";
+              const stage = getStageFromStatus(review.status);
               return (
-                <div
+                <Link
+                  href={`/dashboard/projects/${review.projectId}/reviews`}
                   key={review.id}
-                  className="p-[18px_24px] hover:bg-muted/40 transition-colors flex items-center justify-between group"
+                  className="p-[18px_24px] hover:bg-muted/40 transition-colors flex items-center justify-between group cursor-pointer"
                 >
                   <div className="flex items-center gap-[24px] w-full">
                     {/* Left: Project Info */}
@@ -173,7 +184,7 @@ export default function ReviewsPage() {
                         <span className={`inline-flex items-center px-[8px] py-[3px] rounded-[4px] text-[9.5px] font-bold uppercase tracking-wider ${
                           stage === "Approved" ? "bg-status-on-track/10 text-status-on-track" :
                           stage === "Needs Changes" ? "bg-destructive/10 text-destructive" :
-                          stage === "In Review" ? "bg-status-attention/10 text-status-attention" :
+                          (stage === "Submitted" || stage === "Resubmitted") ? "bg-status-attention/10 text-status-attention" :
                           "bg-muted text-muted-foreground"
                         }`}>
                           {stage}
@@ -230,7 +241,7 @@ export default function ReviewsPage() {
                       </div>
                     </div>
                   </div>
-                </div>
+                </Link>
               );
             })
           )}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, IBM_Plex_Mono, Fraunces } from "next/font/google";
 import { Providers } from "@/lib/providers";
+import { BootLoader } from "@/components/boot-loader";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -20,6 +21,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${ibmPlexMono.variable} ${fraunces.variable} font-sans antialiased min-h-screen bg-background text-foreground`}>
+        <BootLoader />
         <Providers>{children}</Providers>
       </body>
     </html>

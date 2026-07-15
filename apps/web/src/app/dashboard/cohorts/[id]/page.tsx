@@ -52,8 +52,37 @@ export default function CohortDetailPage() {
           <CardContent><div className="text-2xl font-bold">{cohort._count?.applications || 0}</div></CardContent>
         </Card>
       </div>
-      
-      {/* Additional tabs or sections would go here */}
+      {/* Projects Section */}
+      <div className="mt-8">
+        <h2 className="text-xl font-bold tracking-tight mb-4">Projects in this Cohort</h2>
+        {cohort.projects && cohort.projects.length > 0 ? (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {cohort.projects.map((project: any) => (
+              <Card key={project.id} className="hover:bg-accent/50 transition-colors">
+                <CardHeader>
+                  <CardTitle className="text-base">
+                    <Link href={`/dashboard/projects/${project.id}`} className="hover:underline">
+                      {project.name}
+                    </Link>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Badge variant="outline">{project.status}</Badge>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="p-8 text-center bg-muted/20 rounded-xl border border-dashed">
+            <p className="text-muted-foreground">No projects found in this cohort.</p>
+            <Button variant="outline" className="mt-4" asChild>
+              <Link href={`/dashboard/projects/new?cohortId=${cohort.id}`}>
+                Create Project
+              </Link>
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
