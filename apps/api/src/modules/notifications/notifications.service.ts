@@ -56,4 +56,19 @@ export class NotificationsService {
     });
     return { data: notification };
   }
+
+  async markAllAsRead(userId: string) {
+    const result = await this.prisma.notification.updateMany({
+      where: { userId, isRead: false },
+      data: { isRead: true },
+    });
+    return { success: true, count: result.count };
+  }
+
+  async clearAll(userId: string) {
+    const result = await this.prisma.notification.deleteMany({
+      where: { userId },
+    });
+    return { success: true, count: result.count };
+  }
 }

@@ -6,10 +6,12 @@ import { fetchApi } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
 import { useUserRole } from "@/hooks/use-user-role";
 import { Loader2, Save, User as UserIcon, Mail, Shield, Check } from "lucide-react";
+import { useAlert } from "@/hooks/use-alert";
 
 export default function AccountPage() {
   const { dbUser, session, isPending, primaryRole } = useUserRole();
   const queryClient = useQueryClient();
+  const [AlertDialogComponent, customAlert] = useAlert();
   
   const [formData, setFormData] = useState({
     name: "",
@@ -45,10 +47,10 @@ export default function AccountPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["user", session?.user?.id] });
-      alert("Profile updated successfully!");
+      customAlert("Success", "Profile updated successfully!");
     },
     onError: (err: any) => {
-      alert(err.message || "Failed to update profile.");
+      customAlert("Error", err.message || "Failed to update profile.");
     },
   });
 
@@ -63,10 +65,10 @@ export default function AccountPage() {
     },
     onSuccess: () => {
       setPasswordData({ currentPassword: "", newPassword: "" });
-      alert("Password updated successfully!");
+      customAlert("Success", "Password updated successfully!");
     },
     onError: (err: any) => {
-      alert(err.message || "Failed to update password.");
+      customAlert("Error", err.message || "Failed to update password.");
     },
   });
 
@@ -90,7 +92,7 @@ export default function AccountPage() {
 
   return (
     <div className="max-w-[1320px] mx-auto pb-16">
-      
+      <AlertDialogComponent />
       {/* Header Row */}
       <div className="flex justify-between items-end mb-[30px] relative">
         <div className="relative">

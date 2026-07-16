@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Patch, Param, UseGuards, Delete } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { NotificationsService } from './notifications.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -20,10 +20,24 @@ export class NotificationsController {
     return this.notificationsService.getUserNotifications(user.id);
   }
 
+  @Patch('read-all')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ORGANIZER, UserRole.STUDENT, UserRole.NONPROFIT_REP, UserRole.MENTOR, UserRole.TEAM_LEAD)
+  @ApiOperation({ summary: 'Mark all notifications as read' })
+  markAllAsRead(@CurrentUser() user: any) {
+    return this.notificationsService.markAllAsRead(user.id);
+  }
+
   @Patch(':id/read')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORGANIZER, UserRole.STUDENT, UserRole.NONPROFIT_REP, UserRole.MENTOR, UserRole.TEAM_LEAD)
   @ApiOperation({ summary: 'Mark a notification as read' })
   markAsRead(@Param('id') id: string, @CurrentUser() user: any) {
     return this.notificationsService.markAsRead(id, user.id);
+  }
+
+  @Delete('clear-all')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ORGANIZER, UserRole.STUDENT, UserRole.NONPROFIT_REP, UserRole.MENTOR, UserRole.TEAM_LEAD)
+  @ApiOperation({ summary: 'Clear all notifications' })
+  clearAll(@CurrentUser() user: any) {
+    return this.notificationsService.clearAll(user.id);
   }
 }

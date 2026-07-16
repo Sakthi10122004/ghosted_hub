@@ -10,6 +10,7 @@ import { ActivityFeed } from "@/components/activity-feed"
 import { ProjectChat } from "./_components/project-chat"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useConfirm } from "@/hooks/use-confirm"
 
 export default function ProjectOverviewPage() {
   const params = useParams()
@@ -29,8 +30,11 @@ export default function ProjectOverviewPage() {
   )
   if (!project) return <div className="py-12 text-center text-muted-foreground">Project not found.</div>
 
+  const [ConfirmDialog, confirm] = useConfirm()
+
   const handleDelete = async () => {
-    if (!confirm("Are you sure you want to remove this project?")) return
+    const ok = await confirm("Delete Project", "Are you sure you want to remove this project? This action cannot be undone.")
+    if (!ok) return
     try {
       await fetchApi(`/projects/${id}`, { method: "DELETE" })
       router.push("/dashboard/projects")
@@ -51,6 +55,8 @@ export default function ProjectOverviewPage() {
   const canDelete = session?.user && !isStudentMember && !isNpoRep
 
   return (
+    <>
+    <ConfirmDialog />
     <motion.div 
       className="grid gap-[22px] md:grid-cols-3"
       initial="hidden"
@@ -218,5 +224,6 @@ export default function ProjectOverviewPage() {
       </div>
       
     </motion.div>
+    </>
   )
 }

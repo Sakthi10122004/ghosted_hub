@@ -49,7 +49,13 @@ export function UploadFileDialog({ trigger }: { trigger?: React.ReactNode }) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !fileUrl) return;
-    mutation.mutate({ name, fileUrl, category, projectId });
+    
+    let url = fileUrl.trim();
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'https://' + url;
+    }
+    
+    mutation.mutate({ name, fileUrl: url, category, projectId });
   };
 
   return (

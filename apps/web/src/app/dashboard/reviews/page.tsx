@@ -97,31 +97,7 @@ export default function ReviewsPage() {
         ))}
       </div>
 
-      {/* Pipeline Rail - Signature Element */}
-      <div className="mb-[36px] bg-[#16151A] rounded-[14px] p-[24px_32px] opacity-0 animate-fade-up">
-        <div className="flex flex-col gap-[16px]">
-          <div className="flex justify-between text-[11px] text-[#8B889A] font-mono tracking-[0.04em] uppercase mb-[4px]">
-            {REVIEW_STAGES.map((stage) => (
-              <span key={stage} className={(stageCounts[stage] || 0) > 0 ? 'text-[#EFEDE6] font-bold' : ''}>{stage}</span>
-            ))}
-          </div>
-          
-          <div className="flex gap-[6px] origin-left">
-            {REVIEW_STAGES.map((stage, idx) => {
-              const count = stageCounts[stage] || 0;
-              const hasItems = count > 0;
-              let segClass = "flex-1 h-[8px] rounded-[4px] bg-sidebar-border relative";
-              if (hasItems) {
-                segClass = "flex-1 h-[8px] rounded-[4px] bg-primary relative animate-grow-seg origin-left scale-x-0 after:content-[''] after:absolute after:-right-[3px] after:-top-[3px] after:w-[14px] after:h-[14px] after:rounded-full after:bg-primary after:border-[3px] after:border-sidebar";
-              }
-              return (
-                <div key={idx} className={segClass} style={{ animationDelay: `${idx * 100}ms` }}></div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
+      {/* Filters */}
       <div className="flex justify-between items-end mb-[14px]">
         <div className="flex items-center gap-[6px] overflow-x-auto no-scrollbar pb-[4px]">
           {FILTER_TABS.map((tab) => (

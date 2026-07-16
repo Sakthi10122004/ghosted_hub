@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchApi } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
 import {
@@ -10,7 +10,6 @@ import {
   List,
   FileImage,
   FileText,
-  FileArchive,
   FileCode,
   Film,
   Download,
@@ -18,10 +17,10 @@ import {
   Trash2,
   HardDrive,
   Clock,
-  Share2,
   FolderOpen,
 } from "lucide-react";
 import { UploadFileDialog } from "./_components/upload-file-dialog";
+import { useConfirm } from "@/hooks/use-confirm";
 
 // ── Types & Constants ────────────────────────────────────────────────────────
 
@@ -29,9 +28,9 @@ const FILE_TYPES: { label: string; value: string }[] = [
   { label: "All Types", value: "all" },
   { label: "Images", value: "image" },
   { label: "Documents", value: "document" },
-  { label: "Archives", value: "archive" },
-  { label: "Code", value: "code" },
+  { label: "Resources", value: "resource" },
   { label: "Video", value: "video" },
+  { label: "Other", value: "other" },
 ];
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -39,8 +38,7 @@ function getFileIcon(type: string) {
   switch (type) {
     case "image": return FileImage;
     case "document": return FileText;
-    case "archive": return FileArchive;
-    case "code": return FileCode;
+    case "resource": return FileCode;
     case "video": return Film;
     default: return FileText;
   }
@@ -48,12 +46,24 @@ function getFileIcon(type: string) {
 
 function getFileColor(type: string) {
   switch (type) {
-    case "image": return { bg: "bg-destructive/10", text: "text-destructive" }; // Clay tint
-    case "document": return { bg: "bg-primary/10", text: "text-primary" }; // Teal tint
-    case "archive": return { bg: "bg-status-attention/10", text: "text-status-attention" }; // Amber tint
-    case "code": return { bg: "bg-status-on-track/10", text: "text-status-on-track" }; // Sage tint
+    case "image": return { bg: "bg-destructive/10", text: "text-destructive" }; 
+    case "document": return { bg: "bg-primary/10", text: "text-primary" }; 
+    case "resource": return { bg: "bg-status-on-track/10", text: "text-status-on-track" }; 
     case "video": return { bg: "bg-secondary", text: "text-secondary-foreground" }; 
-    default: return { bg: "bg-muted", text: "text-muted-foreground" }; // Muted paper
+    default: return { bg: "bg-muted", text: "text-muted-foreground" }; 
+  }
+}
+
+function handleFileDownload(url: string, filename: string) {
+  if (url.startsWith('data:')) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  } else {
+    window.open(url, '_blank');
   }
 }
 
@@ -61,6 +71,8 @@ export default function FilesPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
+  const queryClient = useQueryClient();
+  const [ConfirmDialog, confirm] = useConfirm();
 
   const { data: session } = authClient.useSession();
   const userRole = (session?.user as any)?.role || "student";
@@ -71,6 +83,13 @@ export default function FilesPage() {
     queryFn: () => fetchApi<{ data: any[] }>("/files"),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => fetchApi(`/files/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["files"] });
+    },
+  });
+
   const files = filesData?.data || [];
 
   const filteredFiles = files.filter((f: any) => {
@@ -78,25 +97,28 @@ export default function FilesPage() {
       (f.name && f.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (f.project?.name && f.project.name.toLowerCase().includes(searchQuery.toLowerCase()));
     
-    const fileCategory = f.category || "document"; 
+    const fileCategory = (f.category || "document").toLowerCase(); 
     const matchesType = typeFilter === "all" || fileCategory === typeFilter;
     
     return matchesSearch && matchesType;
   });
 
   const totalSize = files.reduce((acc: number, f: any) => acc + (f.fileSize || 0), 0);
-  const totalSizeMB = (totalSize / 1024 / 1024).toFixed(1);
+  const totalSizeStr = totalSize < 1024 * 1024 
+    ? `${(totalSize / 1024).toFixed(1)} KB`
+    : `${(totalSize / 1024 / 1024).toFixed(1)} MB`;
+
   const recentUploads = files.filter((f: any) => {
     if (!f.createdAt) return false;
     const date = new Date(f.createdAt);
     const now = new Date();
     return (now.getTime() - date.getTime()) < 24 * 60 * 60 * 1000;
   }).length;
-  const sharedFiles = files.filter((f: any) => f.shared).length;
+  const documentFiles = files.filter((f: any) => f.category === 'DOCUMENT').length;
 
   return (
     <div className="max-w-[1320px] mx-auto pb-16">
-      
+      <ConfirmDialog />
       {/* Header Row */}
       <div className="flex justify-between items-end mb-[30px] relative">
         <div className="relative">
@@ -119,12 +141,11 @@ export default function FilesPage() {
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-[16px] mb-[34px]">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-[16px] mb-[34px]">
         {[
           { label: "Total Files", value: files.length.toString(), icon: <FolderOpen className="w-4 h-4"/> },
-          { label: "Storage Used", value: `${totalSizeMB} MB`, icon: <HardDrive className="w-4 h-4"/> },
           { label: "Recent Uploads", value: recentUploads.toString(), icon: <Clock className="w-4 h-4"/> },
-          { label: "Shared Files", value: sharedFiles.toString(), icon: <Share2 className="w-4 h-4"/> },
+          { label: "Documents", value: documentFiles.toString(), icon: <FileText className="w-4 h-4"/> },
         ].map((stat, i) => (
           <div key={stat.label} className="bg-card border border-border rounded-[14px] p-[18px_20px] opacity-0 animate-fade-up hover:-translate-y-[3px] hover:shadow-[0_10px_22px_-16px_rgba(22,21,26,0.35)] transition-all group" style={{ animationDelay: `${i * 90 + 260}ms` }}>
             <div className="flex justify-between items-start mb-[14px]">
@@ -203,7 +224,7 @@ export default function FilesPage() {
         /* Grid View */
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-[16px] opacity-0 animate-fade-up" style={{ animationDelay: '200ms' }}>
           {filteredFiles.map((file: any) => {
-            const fileCategory = file.category || "document";
+            const fileCategory = (file.category || "document").toLowerCase();
             const FileIcon = getFileIcon(fileCategory);
             const fileColor = getFileColor(fileCategory);
             const sizeString = file.fileSize ? `${(file.fileSize / 1024).toFixed(0)} KB` : "0 KB";
@@ -217,12 +238,33 @@ export default function FilesPage() {
                   </div>
                   {/* Hover overlay */}
                   <div className="absolute inset-0 bg-background/80 backdrop-blur-[2px] flex items-center justify-center gap-[10px] opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button className="w-[36px] h-[36px] rounded-full bg-card shadow-sm border border-border text-foreground hover:text-primary flex items-center justify-center transition-colors">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); window.open(file.fileUrl, '_blank'); }}
+                      title="View File"
+                      className="w-[36px] h-[36px] rounded-full bg-card shadow-sm border border-border text-foreground hover:text-primary flex items-center justify-center transition-colors"
+                    >
                       <Eye className="w-4 h-4" />
                     </button>
-                    <button className="w-[36px] h-[36px] rounded-full bg-card shadow-sm border border-border text-foreground hover:text-primary flex items-center justify-center transition-colors">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); handleFileDownload(file.fileUrl, file.name); }}
+                      title="Download File"
+                      className="w-[36px] h-[36px] rounded-full bg-card shadow-sm border border-border text-foreground hover:text-primary flex items-center justify-center transition-colors"
+                    >
                       <Download className="w-4 h-4" />
                     </button>
+                    {canUpload && (
+                      <button 
+                        onClick={async (e) => { 
+                          e.stopPropagation(); 
+                          const ok = await confirm("Delete File", "Are you sure you want to delete this file? This action cannot be undone.");
+                          if (ok) deleteMutation.mutate(file.id); 
+                        }}
+                        title="Delete File"
+                        className="w-[36px] h-[36px] rounded-full bg-card shadow-sm border border-border text-foreground hover:text-destructive flex items-center justify-center transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
                 {/* File Info */}
@@ -252,7 +294,7 @@ export default function FilesPage() {
           </div>
           <div className="divide-y divide-border/60">
             {filteredFiles.map((file: any) => {
-              const fileCategory = file.category || "document";
+              const fileCategory = (file.category || "document").toLowerCase();
               const FileIcon = getFileIcon(fileCategory);
               const fileColor = getFileColor(fileCategory);
               const sizeString = file.fileSize ? `${(file.fileSize / 1024).toFixed(0)} KB` : "0 KB";
@@ -278,11 +320,30 @@ export default function FilesPage() {
                     {file.createdAt ? new Date(file.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : "Just now"}
                   </span>
                   <div className="flex items-center justify-end gap-[4px] w-[80px] opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button className="h-[32px] w-[32px] rounded-[8px] text-muted-foreground hover:text-foreground hover:bg-muted flex items-center justify-center transition-colors">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); window.open(file.fileUrl, '_blank'); }}
+                      title="View File"
+                      className="h-[32px] w-[32px] rounded-[8px] text-muted-foreground hover:text-foreground hover:bg-muted flex items-center justify-center transition-colors"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); handleFileDownload(file.fileUrl, file.name); }}
+                      title="Download File"
+                      className="h-[32px] w-[32px] rounded-[8px] text-muted-foreground hover:text-foreground hover:bg-muted flex items-center justify-center transition-colors"
+                    >
                       <Download className="w-4 h-4" />
                     </button>
                     {canUpload && (
-                      <button className="h-[32px] w-[32px] rounded-[8px] text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex items-center justify-center transition-colors">
+                      <button 
+                        onClick={async (e) => { 
+                          e.stopPropagation(); 
+                          const ok = await confirm("Delete File", "Are you sure you want to delete this file? This action cannot be undone.");
+                          if (ok) deleteMutation.mutate(file.id); 
+                        }}
+                        title="Delete File"
+                        className="h-[32px] w-[32px] rounded-[8px] text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex items-center justify-center transition-colors"
+                      >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     )}

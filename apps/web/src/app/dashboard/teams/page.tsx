@@ -15,6 +15,7 @@ import {
 import { CreateTeamDialog } from "./_components/create-team-dialog"
 import { TeamDetailDialog } from "./_components/team-detail-dialog"
 import { useUserRole } from "@/hooks/use-user-role"
+import { useConfirm } from "@/hooks/use-confirm"
 
 interface TeamMember {
   id: string
@@ -42,6 +43,7 @@ export default function TeamsPage() {
   const [cohortFilter, setCohortFilter] = useState("")
   const [selectedTeam, setSelectedTeam] = useState<any | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
+  const [ConfirmDialog, confirm] = useConfirm()
 
   const { data, isLoading } = useQuery({
     queryKey: ["teams", search, cohortFilter],
@@ -93,6 +95,7 @@ export default function TeamsPage() {
 
   return (
     <div className="max-w-[1320px] mx-auto pb-16">
+      <ConfirmDialog />
       {/* Header Row */}
       <div className="flex justify-between items-end mb-[30px] relative">
         <div className="relative">
@@ -271,9 +274,10 @@ export default function TeamsPage() {
                       {isAdmin && (
                         <button 
                           className="h-[32px] w-[32px] rounded-[8px] text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex items-center justify-center transition-colors"
-                          onClick={(e) => {
+                          onClick={async (e) => {
                             e.stopPropagation()
-                            if (confirm("Delete this team?")) {
+                            const ok = await confirm("Delete Team", `Are you sure you want to delete ${team.name}? This cannot be undone.`)
+                            if (ok) {
                               deleteTeamMutation.mutate(team.id)
                             }
                           }}

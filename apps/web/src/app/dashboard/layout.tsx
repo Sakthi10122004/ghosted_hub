@@ -93,6 +93,20 @@ export default function DashboardLayout({
     },
   });
 
+  const markAllAsReadMutation = useMutation({
+    mutationFn: () => fetchApi('/notifications/read-all', { method: "PATCH" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+
+  const clearAllMutation = useMutation({
+    mutationFn: () => fetchApi('/notifications/clear-all', { method: "DELETE" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [pathname]);
@@ -262,10 +276,38 @@ export default function DashboardLayout({
                   )}
                 </div>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-80 p-0 overflow-hidden border-border bg-card shadow-lg rounded-xl">
+              <DropdownMenuContent align="end" className="w-[360px] p-0 overflow-hidden border-border bg-card shadow-lg rounded-xl">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/20">
-                  <span className="text-sm font-semibold text-foreground">Notifications</span>
-                  {unreadCount > 0 && <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full font-mono">{unreadCount} new</span>}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-foreground">Notifications</span>
+                    {unreadCount > 0 && <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full font-mono">{unreadCount} new</span>}
+                  </div>
+                  {notifications.length > 0 && (
+                    <div className="flex items-center gap-3">
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            markAllAsReadMutation.mutate();
+                          }}
+                          disabled={markAllAsReadMutation.isPending}
+                          className="text-[11px] font-semibold text-primary hover:text-primary/80 transition-colors uppercase tracking-wider"
+                        >
+                          Mark all read
+                        </button>
+                      )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          clearAllMutation.mutate();
+                        }}
+                        disabled={clearAllMutation.isPending}
+                        className="text-[11px] font-semibold text-muted-foreground hover:text-destructive transition-colors uppercase tracking-wider"
+                      >
+                        Clear all
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="max-h-[300px] overflow-y-auto">
                   {notifications.length === 0 ? (
