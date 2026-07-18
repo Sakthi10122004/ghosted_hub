@@ -32,12 +32,15 @@ function InvitePageContent() {
 
   // Redirect after success
   useEffect(() => {
+    let timer: NodeJS.Timeout;
     if (success) {
-      const timer = setTimeout(() => {
+      timer = setTimeout(() => {
         router.push("/login");
       }, 2500);
-      return () => clearTimeout(timer);
     }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [success, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
