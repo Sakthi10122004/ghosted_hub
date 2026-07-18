@@ -5,9 +5,30 @@
 
 set -e
 
+KEY_ARG=""
+SSH_ARGS=""
+RSYNC_RSH=""
+
+# Parse options
+while getopts "i:" opt; do
+  case ${opt} in
+    i )
+      KEY_ARG=$OPTARG
+      SSH_ARGS="-i $KEY_ARG"
+      RSYNC_RSH="ssh -i $KEY_ARG"
+      ;;
+    \? )
+      echo "Usage: ./deploy.sh [-i /path/to/key.pem] <user@your-vm-ip>"
+      exit 1
+      ;;
+  esac
+done
+shift $((OPTIND -1))
+
 if [ -z "$1" ]; then
-  echo "Usage: ./deploy.sh <user@your-vm-ip>"
+  echo "Usage: ./deploy.sh [-i /path/to/key.pem] <user@your-vm-ip>"
   echo "Example: ./deploy.sh ubuntu@203.0.113.50"
+  echo "Example with key: ./deploy.sh -i ~/.ssh/my-key.pem ubuntu@203.0.113.50"
   exit 1
 fi
 
@@ -18,18 +39,31 @@ echo "🚀 Starting deployment to $DEST..."
 
 # 1. Sync files to the remote server using rsync
 echo "📦 Syncing files to remote server (this may take a minute)..."
-rsync -avz --delete \
-  --exclude 'node_modules' \
-  --exclude '.git' \
-  --exclude '.next' \
-  --exclude 'dist' \
-  --exclude '.env' \
-  --exclude '.env.local' \
-  ./ "$DEST:$REMOTE_DIR"
+
+if [ -n "$RSYNC_RSH" ]; then
+  rsync -avz --delete -e "$RSYNC_RSH" \
+    --exclude 'node_modules' \
+    --exclude '.git' \
+    --exclude '.next' \
+    --exclude 'dist' \
+    --exclude '.env' \
+    --exclude '.env.local' \
+    ./ "$DEST:$REMOTE_DIR"
+else
+  rsync -avz --delete \
+    --exclude 'node_modules' \
+    --exclude '.git' \
+    --exclude '.next' \
+    --exclude 'dist' \
+    --exclude '.env' \
+    --exclude '.env.local' \
+    ./ "$DEST:$REMOTE_DIR"
+fi
+
 
 # 2. SSH into the server and run docker-compose
 echo "🐳 Building and starting Docker containers on remote server..."
-ssh -t "$DEST" << EOF
+ssh $SSH_ARGS -t "$DEST" << EOF
   cd $REMOTE_DIR
 
   # Ensure .env is present (if this is the first deployment, copy from .env.production)
