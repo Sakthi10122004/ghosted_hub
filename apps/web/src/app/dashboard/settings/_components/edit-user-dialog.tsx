@@ -83,10 +83,9 @@ export function EditUserDialog({ user }: { user: any }) {
               onChange={(e) => setRole(e.target.value)}
               className="flex h-9 w-full border border-input bg-card px-3 py-1.5 text-[11px] font-mono uppercase tracking-widest transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-none"
             >
-              <option value="STUDENT">Student</option>
               <option value="SUPER_ADMIN">Admin</option>
-              <option value="ORGANIZER">Event Manager</option>
-              <option value="NONPROFIT_REP">NPO Partner</option>
+              <option value="ORGANIZER">Organizer</option>
+              <option value="STUDENT">Student</option>
             </select>
           </div>
           <DialogFooter>

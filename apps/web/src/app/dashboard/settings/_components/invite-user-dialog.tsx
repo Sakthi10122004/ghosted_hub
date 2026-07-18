@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UserPlus, Loader2 } from "lucide-react";
+import { useAlert } from "@/hooks/use-alert";
 import {
   Dialog,
   DialogContent,
@@ -22,9 +23,10 @@ export function InviteUserDialog() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    role: "student",
+    role: "STUDENT",
   });
   const queryClient = useQueryClient();
+  const [AlertDialogComponent, customAlert] = useAlert();
 
   const mutation = useMutation({
     mutationFn: (newUser: any) => {
@@ -36,11 +38,11 @@ export function InviteUserDialog() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       setOpen(false);
-      setFormData({ name: "", email: "", role: "student" });
-      alert("Invitation sent successfully!");
+      setFormData({ name: "", email: "", role: "STUDENT" });
+      customAlert("Success", "Invitation sent successfully!");
     },
     onError: (err: any) => {
-      alert(err.message || "Failed to send invitation.");
+      customAlert("Error", err.message || "Failed to send invitation.");
     }
   });
 
@@ -55,6 +57,8 @@ export function InviteUserDialog() {
   };
 
   return (
+    <>
+    <AlertDialogComponent />
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <button className="flex items-center gap-2 bg-foreground text-background px-5 py-2.5 rounded-2xl text-sm font-bold shadow-lg shadow-foreground/20 hover:scale-[1.02] transition-all">
@@ -109,10 +113,9 @@ export function InviteUserDialog() {
               className="flex h-12 w-full items-center justify-between rounded-xl border border-border bg-muted/50 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               required
             >
-              <option value="admin">Admin</option>
-              <option value="event_manager">Event Manager</option>
-              <option value="npo">NPO Partner</option>
-              <option value="student">Student</option>
+              <option value="SUPER_ADMIN">Admin</option>
+              <option value="ORGANIZER">Organizer</option>
+              <option value="STUDENT">Student</option>
             </select>
           </div>
 
@@ -137,5 +140,6 @@ export function InviteUserDialog() {
         </form>
       </DialogContent>
     </Dialog>
+    </>
   );
 }

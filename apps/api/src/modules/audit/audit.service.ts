@@ -44,13 +44,14 @@ export class AuditService {
     });
   }
 
-  async getActivityFeed(user: any) {
+  async getActivityFeed(user: any, onlyMine: boolean = false) {
     const isAdmin = user.roles?.some((r: any) => r.role === "SUPER_ADMIN" || r.role === "ORGANIZER");
     
     // Filter out noisy events like auth.login
     const filter = {
       action: { notIn: ["auth.login", "auth.logout", "file.downloaded"] },
-      ...(isAdmin ? {} : { userId: user.id })
+      // If onlyMine is true, always filter by userId; otherwise only filter for non-admins
+      ...((onlyMine || !isAdmin) ? { userId: user.id } : {})
     };
 
     const logs = await this.prisma.auditLog.findMany({

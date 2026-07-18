@@ -10,26 +10,26 @@ import { useUserRole } from "@/hooks/use-user-role";
 import { InviteUserDialog } from "./_components/invite-user-dialog";
 import { EditUserDialog } from "./_components/edit-user-dialog";
 import { DeleteUserDialog } from "./_components/delete-user-dialog";
+import { RevokeInviteDialog } from "./_components/revoke-invite-dialog";
 import { ResetPasswordDialog } from "./_components/reset-password-dialog";
 import {
   Settings as SettingsIcon, Users, Bell, Shield,
-  Save, Check, Loader2, Mail,
+  Save, Check, Loader2, Mail, X, Lock,
 } from "lucide-react";
+import { useAlert } from "@/hooks/use-alert";
 
 // ── Constants ──
 
 const ROLE_COLORS: Record<string, { bg: string, text: string }> = {
-  admin: { bg: "bg-destructive/10", text: "text-destructive" },
-  student: { bg: "bg-primary/10", text: "text-primary" },
-  lead: { bg: "bg-primary/20", text: "text-primary" },
-  npo: { bg: "bg-status-attention/10", text: "text-status-attention" },
+  SUPER_ADMIN: { bg: "bg-destructive/10", text: "text-destructive" },
+  ORGANIZER: { bg: "bg-status-attention/10", text: "text-status-attention" },
+  STUDENT: { bg: "bg-primary/10", text: "text-primary" },
 };
 
 const ROLE_LABELS: Record<string, string> = {
-  admin: "Admin",
-  event_manager: "Event Manager",
-  student: "Student",
-  npo: "NPO Partner",
+  SUPER_ADMIN: "Admin",
+  ORGANIZER: "Organizer",
+  STUDENT: "Student",
 };
 
 export default function SettingsPage() {
@@ -141,55 +141,7 @@ function GeneralSettings() {
 
       <SmtpSettings />
 
-      <div className="bg-card border border-border rounded-[14px] overflow-hidden">
-        <div className="p-[24px_32px]">
-          <div className="flex items-center gap-[12px] pb-[16px] border-b border-border/60 mb-[24px]">
-            <Shield className="w-[18px] h-[18px] text-muted-foreground" />
-            <h2 className="text-[16px] font-serif font-semibold text-foreground">Role Permissions Overview</h2>
-          </div>
-          
-          <div className="border border-border rounded-[10px] overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-[13px]">
-                <thead className="bg-muted/30 border-b border-border">
-                  <tr>
-                    <th className="text-left p-[12px_20px] text-[10.5px] font-mono tracking-widest uppercase text-muted-foreground font-semibold border-r border-border">Permission</th>
-                    {["Admin", "Event Manager", "Student", "NPO"].map((r) => (
-                      <th key={r} className="text-center p-[12px_16px] text-[10.5px] font-mono tracking-widest uppercase text-muted-foreground font-semibold border-r border-border last:border-0">{r}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border bg-card">
-                  {[
-                    { perm: "Manage Projects", admin: true, em: true, student: false, npo: false },
-                    { perm: "Submit Reviews", admin: true, em: true, student: true, npo: false },
-                    { perm: "Approve Reviews", admin: true, em: true, student: false, npo: false },
-                    { perm: "Upload Files", admin: true, em: true, student: true, npo: true },
-                    { perm: "Manage Users", admin: true, em: false, student: false, npo: false },
-                    { perm: "View Deployments", admin: true, em: false, student: false, npo: false },
-                    { perm: "Platform Settings", admin: true, em: false, student: false, npo: false },
-                  ].map((row) => (
-                    <tr key={row.perm} className="hover:bg-muted/40 transition-colors">
-                      <td className="p-[14px_20px] font-medium text-foreground border-r border-border">{row.perm}</td>
-                      {[row.admin, row.em, row.student, row.npo].map((v, i) => (
-                        <td key={i} className="text-center p-[14px_16px] border-r border-border last:border-0">
-                          {v ? (
-                            <span className="inline-flex items-center justify-center w-[24px] h-[24px] rounded-full bg-status-on-track/10 text-status-on-track">
-                              <Check className="w-[14px] h-[14px]" />
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground/30">—</span>
-                          )}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
+          <RolePermissionsEditor />
     </div>
   );
 }
@@ -197,13 +149,34 @@ function GeneralSettings() {
 function UsersSettings() {
   const [roleFilter, setRoleFilter] = useState("all");
   
-  const { data, isLoading } = useQuery({
+  const { data: usersData, isLoading: usersLoading } = useQuery({
     queryKey: ["users"],
     queryFn: () => fetchApi<{ data: any[] }>("/users"),
   });
   
-  const users = data?.data || [];
-  const filtered = roleFilter === "all" ? users : users.filter((u: any) => u.roles?.[0]?.role === roleFilter || u.role === roleFilter);
+  const { data: invitesData, isLoading: invitesLoading } = useQuery({
+    queryKey: ["invitations", "pending"],
+    queryFn: () => fetchApi<{ data: any[] }>("/invitations/pending"),
+  });
+
+  const isLoading = usersLoading || invitesLoading;
+  
+  const users = usersData?.data || [];
+  const invites = invitesData?.data || [];
+
+  // Map invitations to user-like objects for the table
+  const pendingUsers = invites.map((inv: any) => ({
+    id: inv.id,
+    email: inv.email,
+    name: "Pending Invite",
+    isActive: false,
+    isInvitation: true,
+    roles: [{ role: inv.role }],
+    role: inv.role,
+  }));
+
+  const allUsers = [...pendingUsers, ...users];
+  const filtered = roleFilter === "all" ? allUsers : allUsers.filter((u: any) => u.roles?.[0]?.role === roleFilter || u.role === roleFilter);
 
   return (
     <div className="space-y-[24px] max-w-5xl animate-fade-up">
@@ -246,10 +219,10 @@ function UsersSettings() {
                 </tr>
               ) : (
                 filtered.map((user: any) => {
-                  const role = user.roles?.[0]?.role || user.role || "student";
-                  const initials = user.name ? user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2) : "U";
-                  const status = user.isActive ? "Active" : "Invited";
-                  const colorConfig = ROLE_COLORS[role] || ROLE_COLORS.student || { bg: "bg-[#DEEAE7]", text: "text-[#0A4F44]" };
+                  const role = user.roles?.[0]?.role || user.role || "STUDENT";
+                  const initials = user.isInvitation ? "@" : (user.name ? user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2) : "U");
+                  const status = user.isInvitation ? "Invited" : (user.isActive ? "Active" : "Inactive");
+                  const colorConfig = ROLE_COLORS[role] || ROLE_COLORS.STUDENT || { bg: "bg-[#DEEAE7]", text: "text-[#0A4F44]" };
                   
                   return (
                     <tr key={user.id} className="hover:bg-muted/40 transition-colors group">
@@ -277,9 +250,10 @@ function UsersSettings() {
                       </td>
                       <td className="p-[16px_24px] text-right">
                         <div className="flex items-center justify-end gap-[4px] opacity-0 group-hover:opacity-100 transition-opacity">
-                          <ResetPasswordDialog user={user} />
-                          <EditUserDialog user={user} />
-                          <DeleteUserDialog user={user} />
+                          {!user.isInvitation && <ResetPasswordDialog user={user} />}
+                          {!user.isInvitation && <EditUserDialog user={user} />}
+                          {!user.isInvitation && <DeleteUserDialog user={user} />}
+                          {user.isInvitation && <RevokeInviteDialog invite={user} />}
                         </div>
                       </td>
                     </tr>
@@ -348,6 +322,7 @@ function SmtpSettings() {
     SMTP_USER: "",
     SMTP_PASSWORD: "",
   });
+  const [AlertDialogComponent, customAlert] = useAlert();
 
   const { isLoading } = useQuery({
     queryKey: ["settings"],
@@ -370,7 +345,7 @@ function SmtpSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["settings"] });
-      alert("SMTP settings saved successfully!");
+      customAlert("Success", "SMTP settings saved successfully!");
     },
   });
 
@@ -384,6 +359,8 @@ function SmtpSettings() {
   };
 
   return (
+    <>
+    <AlertDialogComponent />
     <div className="bg-card border border-border rounded-[14px] overflow-hidden">
       <div className="p-[24px_32px]">
         <div className="flex items-center gap-[12px] pb-[16px] border-b border-border/60 mb-[16px]">
@@ -446,5 +423,173 @@ function SmtpSettings() {
         </div>
       )}
     </div>
+    </>
+  );
+}
+
+// ── Permission labels mapping ──
+const PERMISSION_LABELS: Record<string, string> = {
+  manage_projects: "Manage Projects",
+  submit_reviews: "Submit Reviews",
+  approve_reviews: "Approve Reviews",
+  upload_files: "Upload Files",
+  manage_users: "Manage Users",
+  view_deployments: "View Deployments",
+  platform_settings: "Platform Settings",
+};
+
+const ROLE_KEYS = ["admin", "organizer", "student"] as const;
+const ROLE_HEADERS: Record<string, string> = {
+  admin: "Admin",
+  organizer: "Organizer",
+  student: "Student",
+};
+
+function RolePermissionsEditor() {
+  const queryClient = useQueryClient();
+  const [AlertDialogComponent, customAlert] = useAlert();
+  const [savingCell, setSavingCell] = useState<string | null>(null);
+
+  const { data: permissionsData, isLoading } = useQuery({
+    queryKey: ["role-permissions"],
+    queryFn: () => fetchApi<{ data: Record<string, Record<string, boolean>> }>("/settings/permissions"),
+  });
+
+  const mutation = useMutation({
+    mutationFn: (data: Record<string, Record<string, boolean>>) => {
+      return fetchApi("/settings/permissions", {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["role-permissions"] });
+      setSavingCell(null);
+    },
+    onError: (err: any) => {
+      setSavingCell(null);
+      customAlert("Error", err.message || "Failed to update permissions.");
+    },
+  });
+
+  const permissions = permissionsData?.data;
+
+  const handleToggle = (permKey: string, roleKey: string) => {
+    // Admin permissions are locked
+    if (roleKey === "admin") return;
+    if (!permissions) return;
+
+    const cellId = `${permKey}-${roleKey}`;
+    setSavingCell(cellId);
+
+    const updated = { ...permissions };
+    updated[permKey] = {
+      ...updated[permKey],
+      [roleKey]: !updated[permKey][roleKey],
+    };
+
+    mutation.mutate(updated);
+  };
+
+  return (
+    <>
+    <AlertDialogComponent />
+    <div className="bg-card border border-border rounded-[14px] overflow-hidden">
+      <div className="p-[24px_32px]">
+        <div className="flex items-center justify-between pb-[16px] border-b border-border/60 mb-[24px]">
+          <div className="flex items-center gap-[12px]">
+            <Shield className="w-[18px] h-[18px] text-muted-foreground" />
+            <h2 className="text-[16px] font-serif font-semibold text-foreground">Role Permissions</h2>
+          </div>
+          {mutation.isPending && (
+            <div className="flex items-center gap-[6px] text-[11px] text-muted-foreground">
+              <Loader2 className="w-[12px] h-[12px] animate-spin" />
+              Saving...
+            </div>
+          )}
+        </div>
+
+        <p className="text-[12.5px] text-muted-foreground mb-[20px]">
+          Click on a cell to toggle permissions for each role. Admin permissions are locked and cannot be changed.
+        </p>
+        
+        <div className="border border-border rounded-[10px] overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-[13px]">
+              <thead className="bg-muted/30 border-b border-border">
+                <tr>
+                  <th className="text-left p-[12px_20px] text-[10.5px] font-mono tracking-widest uppercase text-muted-foreground font-semibold border-r border-border">Permission</th>
+                  {ROLE_KEYS.map((role) => (
+                    <th key={role} className="text-center p-[12px_16px] text-[10.5px] font-mono tracking-widest uppercase text-muted-foreground font-semibold border-r border-border last:border-0">
+                      <div className="flex items-center justify-center gap-[4px]">
+                        {ROLE_HEADERS[role]}
+                        {role === "admin" && <Lock className="w-[10px] h-[10px] opacity-40" />}
+                      </div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border bg-card">
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={4} className="p-[48px] text-center text-muted-foreground text-[13px]">
+                      <div className="flex items-center justify-center gap-[8px]">
+                        <Loader2 className="w-[16px] h-[16px] animate-spin" />
+                        Loading permissions...
+                      </div>
+                    </td>
+                  </tr>
+                ) : permissions && Object.entries(permissions).map(([permKey, roles]) => (
+                  <tr key={permKey} className="group">
+                    <td className="p-[14px_20px] font-medium text-foreground border-r border-border">
+                      {PERMISSION_LABELS[permKey] || permKey}
+                    </td>
+                    {ROLE_KEYS.map((roleKey) => {
+                      const isEnabled = roles[roleKey];
+                      const isAdmin = roleKey === "admin";
+                      const cellId = `${permKey}-${roleKey}`;
+                      const isSaving = savingCell === cellId;
+
+                      return (
+                        <td key={roleKey} className="text-center p-[14px_16px] border-r border-border last:border-0">
+                          <button
+                            type="button"
+                            onClick={() => handleToggle(permKey, roleKey)}
+                            disabled={isAdmin || isSaving}
+                            className={`inline-flex items-center justify-center w-[28px] h-[28px] rounded-[6px] transition-all duration-200 ${
+                              isAdmin
+                                ? "bg-status-on-track/10 text-status-on-track cursor-not-allowed opacity-60"
+                                : isEnabled
+                                  ? "bg-status-on-track/10 text-status-on-track hover:bg-status-on-track/20 hover:scale-110 cursor-pointer"
+                                  : "bg-transparent text-muted-foreground/25 hover:bg-destructive/10 hover:text-destructive/60 hover:scale-110 cursor-pointer"
+                            }`}
+                            title={
+                              isAdmin
+                                ? "Admin permissions are locked"
+                                : isEnabled
+                                  ? `Revoke "${PERMISSION_LABELS[permKey]}" from ${ROLE_HEADERS[roleKey]}`
+                                  : `Grant "${PERMISSION_LABELS[permKey]}" to ${ROLE_HEADERS[roleKey]}`
+                            }
+                          >
+                            {isSaving ? (
+                              <Loader2 className="w-[14px] h-[14px] animate-spin" />
+                            ) : isEnabled ? (
+                              <Check className="w-[14px] h-[14px]" />
+                            ) : (
+                              <X className="w-[12px] h-[12px]" />
+                            )}
+                          </button>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    </>
   );
 }

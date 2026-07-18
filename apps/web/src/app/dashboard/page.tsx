@@ -41,7 +41,7 @@ export default function DashboardPage() {
 
   const { data: activityData, isLoading: activityLoading } = useQuery({
     queryKey: ["dashboard-activity"],
-    queryFn: () => fetchApi<{ data: any[] }>("/activity"),
+    queryFn: () => fetchApi<{ data: any[] }>("/activity?mine=true"),
     enabled: !rolePending,
     refetchInterval: 15000,
   });
@@ -268,7 +268,7 @@ export default function DashboardPage() {
         {/* Activity Panel */}
         <div>
           <div className="flex justify-between items-baseline mb-[14px]">
-            <div className="font-serif text-[16px] font-semibold">Activity</div>
+            <div className="font-serif text-[16px] font-semibold">Your Activity</div>
           </div>
           <div className="bg-card border border-border rounded-[14px] p-[18px_20px] relative min-h-[300px]">
             <svg width="2" height="88%" className="absolute left-[23px] top-[22px]">
@@ -285,24 +285,36 @@ export default function DashboardPage() {
                 No recent activity.
               </div>
             ) : (
-              <div className="flex flex-col gap-5 pl-8 relative z-10">
+              <div className="flex flex-col gap-5 relative z-10">
                 {activities.map((act: any, idx: number) => {
                   let colorClass = "text-muted-foreground";
                   if (act.action.includes('review')) {
                     colorClass = "text-status-on-track";
                   } else if (act.action.includes('project')) {
                     colorClass = "text-primary";
+                  } else if (act.action.includes('delete')) {
+                    colorClass = "text-destructive";
+                  } else if (act.action.includes('upload') || act.action.includes('create')) {
+                    colorClass = "text-status-on-track";
                   }
 
+                  // Format action text nicely
+                  const actionText = act.action
+                    .replace(/\./g, ' ')
+                    .replace(/_/g, ' ')
+                    .replace(/^(\w)/, (_: string, c: string) => c.toUpperCase());
+
                   return (
-                    <div key={act.id} className="flex gap-4 opacity-0 animate-fade-up group" style={{ animationDelay: `${idx * 80 + 300}ms` }}>
-                      <div className={`absolute left-[5px] w-[6px] h-[6px] rounded-full mt-1.5 ring-4 ring-card ${colorClass === 'text-muted-foreground' ? 'bg-border' : `bg-current ${colorClass}`}`} />
+                    <div key={act.id} className="flex gap-[24px] opacity-0 animate-fade-up group" style={{ animationDelay: `${idx * 80 + 300}ms` }}>
+                      <div className="w-[8px] shrink-0 flex justify-center mt-1.5">
+                        <div className={`w-[6px] h-[6px] rounded-full ring-4 ring-card ${colorClass === 'text-muted-foreground' ? 'bg-border' : `bg-current ${colorClass}`}`} />
+                      </div>
                       <div className="flex flex-col min-w-0">
                         <div className="text-[13px] font-medium text-foreground truncate">
-                          {act.action.replace(/\./g, ' ').replace(/_/g, ' ')}
+                          {actionText}
                         </div>
                         <div className="text-[11.5px] text-muted-foreground truncate mt-0.5">
-                          by {act.user?.name || "System"} {act.entityType ? `on ${act.entityType}` : ""}
+                          {act.entityType ? `on ${act.entityType}` : ""}
                         </div>
                         <div className="text-[10px] text-muted-foreground/60 font-mono mt-1 uppercase">
                           {format(new Date(act.createdAt), "MMM d, h:mm a")}

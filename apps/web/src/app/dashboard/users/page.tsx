@@ -41,10 +41,10 @@ export default function UsersPage() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground text-sm">Loading users...</TableCell>
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground text-sm">Loading users...</TableCell>
                 </TableRow>
               ) : (
-                data?.data.map((user) => (
+                data?.data?.map((user) => (
                   <TableRow key={user.id} className="group">
                     <TableCell className="font-medium text-foreground">{user.name}</TableCell>
                     <TableCell className="text-muted-foreground">{user.email}</TableCell>

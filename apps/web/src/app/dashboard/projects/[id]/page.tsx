@@ -11,6 +11,7 @@ import { ProjectChat } from "./_components/project-chat"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useConfirm } from "@/hooks/use-confirm"
+import { useAlert } from "@/hooks/use-alert"
 
 export default function ProjectOverviewPage() {
   const params = useParams()
@@ -22,6 +23,8 @@ export default function ProjectOverviewPage() {
     queryFn: () => fetchApi<any>(`/projects/${id}`),
   })
   const { data: session } = authClient.useSession()
+  const [ConfirmDialog, confirm] = useConfirm()
+  const [AlertDialogComponent, customAlert] = useAlert()
 
   if (isLoading) return (
     <div className="py-12 flex justify-center">
@@ -29,8 +32,6 @@ export default function ProjectOverviewPage() {
     </div>
   )
   if (!project) return <div className="py-12 text-center text-muted-foreground">Project not found.</div>
-
-  const [ConfirmDialog, confirm] = useConfirm()
 
   const handleDelete = async () => {
     const ok = await confirm("Delete Project", "Are you sure you want to remove this project? This action cannot be undone.")
@@ -40,7 +41,7 @@ export default function ProjectOverviewPage() {
       router.push("/dashboard/projects")
     } catch (err) {
       console.error("Failed to delete project", err)
-      alert("Failed to delete project")
+      customAlert("Error", "Failed to delete project")
     }
   }
 
@@ -56,6 +57,7 @@ export default function ProjectOverviewPage() {
 
   return (
     <>
+    <AlertDialogComponent />
     <ConfirmDialog />
     <motion.div 
       className="grid gap-[22px] md:grid-cols-3"

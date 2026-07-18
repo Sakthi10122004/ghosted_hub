@@ -2,6 +2,7 @@ import { Injectable, BadRequestException, InternalServerErrorException } from '@
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { SettingsService } from '../settings/settings.service';
 import * as nodemailer from 'nodemailer';
+import * as bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
 import { UserRole } from '@prisma/client';
 import { AuditService } from '../audit/audit.service';
@@ -15,6 +16,14 @@ export class InvitationsService {
 
   async getFirstUser() {
     return this.prisma.user.findFirst();
+  }
+
+  async getPendingInvitations() {
+    const invites = await this.prisma.invitation.findMany({
+      where: { accepted: false },
+      orderBy: { createdAt: 'desc' }
+    });
+    return { data: invites };
   }
 
   async createAndSendInvitation(data: { email: string; name: string; role: UserRole }, invitedById: string) {
@@ -73,7 +82,7 @@ export class InvitationsService {
         },
       });
 
-      const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/register?invite=${token}&email=${encodeURIComponent(email)}&role=${role}&name=${encodeURIComponent(name)}`;
+      const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/invite?token=${token}&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`;
       
       const inviter = await this.prisma.user.findUnique({
         where: { id: invitedById },
@@ -229,5 +238,93 @@ export class InvitationsService {
       await this.prisma.invitation.delete({ where: { id: invitation.id } });
       throw new InternalServerErrorException('Failed to send invitation email. Please check SMTP configuration.');
     }
+  }
+
+  async acceptInvitation(data: { token: string; password: string; name: string }) {
+    const { token, password, name } = data;
+
+    // Find the invitation by token
+    const invitation = await this.prisma.invitation.findUnique({
+      where: { token },
+    });
+
+    if (!invitation) {
+      throw new BadRequestException('Invalid invitation token.');
+    }
+
+    if (invitation.accepted) {
+      throw new BadRequestException('This invitation has already been accepted.');
+    }
+
+    if (new Date() > invitation.expiresAt) {
+      throw new BadRequestException('This invitation has expired. Please request a new one.');
+    }
+
+    // Check if a user with this email already exists
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: invitation.email },
+    });
+
+    if (existingUser) {
+      throw new BadRequestException('An account with this email already exists.');
+    }
+
+    // Hash the password
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    // Create the user, account, role assignment, and mark invitation accepted — all in one transaction
+    const user = await this.prisma.$transaction(async (tx) => {
+      // Create the user
+      const newUser = await tx.user.create({
+        data: {
+          email: invitation.email,
+          name: name || 'New User',
+          emailVerified: true,
+        },
+      });
+
+      // Create the credential account (for better-auth)
+      await tx.account.create({
+        data: {
+          userId: newUser.id,
+          accountId: newUser.id,
+          providerId: 'credential',
+          password: passwordHash,
+        },
+      });
+
+      // Assign the invited role
+      await tx.userRoleAssignment.create({
+        data: {
+          userId: newUser.id,
+          role: invitation.role,
+        },
+      });
+
+      // Mark the invitation as accepted
+      await tx.invitation.update({
+        where: { id: invitation.id },
+        data: { accepted: true },
+      });
+
+      return newUser;
+    });
+
+    await this.auditService.createLog({
+      action: 'user.invite_accepted',
+      entityType: 'User',
+      entityId: user.id,
+      actorId: user.id,
+      metadata: { email: invitation.email, role: invitation.role },
+    });
+
+    return { success: true, email: user.email };
+  }
+
+  async revokeInvitation(id: string) {
+    await this.prisma.invitation.delete({
+      where: { id }
+    });
+    return { success: true, message: 'Invitation revoked successfully.' };
   }
 }

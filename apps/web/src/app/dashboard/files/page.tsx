@@ -15,7 +15,6 @@ import {
   Download,
   Eye,
   Trash2,
-  HardDrive,
   Clock,
   FolderOpen,
 } from "lucide-react";
@@ -102,11 +101,6 @@ export default function FilesPage() {
     
     return matchesSearch && matchesType;
   });
-
-  const totalSize = files.reduce((acc: number, f: any) => acc + (f.fileSize || 0), 0);
-  const totalSizeStr = totalSize < 1024 * 1024 
-    ? `${(totalSize / 1024).toFixed(1)} KB`
-    : `${(totalSize / 1024 / 1024).toFixed(1)} MB`;
 
   const recentUploads = files.filter((f: any) => {
     if (!f.createdAt) return false;

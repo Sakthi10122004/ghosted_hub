@@ -1,5 +1,5 @@
-import { Controller, Get, UseGuards } from "@nestjs/common";
-import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
+import { Controller, Get, UseGuards, Query } from "@nestjs/common";
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from "@nestjs/swagger";
 import { AuditService } from "./audit.service";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
@@ -16,7 +16,8 @@ export class ActivityController {
 
   @Get()
   @ApiOperation({ summary: "Get activity feed for the dashboard" })
-  async getActivityFeed(@CurrentUser() user: any) {
-    return this.auditService.getActivityFeed(user);
+  @ApiQuery({ name: "mine", required: false, type: Boolean })
+  async getActivityFeed(@CurrentUser() user: any, @Query("mine") mine?: string) {
+    return this.auditService.getActivityFeed(user, mine === "true");
   }
 }

@@ -1,5 +1,6 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Get, Delete, Param } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { Public } from '@thallesp/nestjs-better-auth';
 import { InvitationsService } from './invitations.service';
 import { UserRole } from '@prisma/client';
 
@@ -7,6 +8,12 @@ import { UserRole } from '@prisma/client';
 @Controller('invitations')
 export class InvitationsController {
   constructor(private readonly invitationsService: InvitationsService) {}
+
+  @Get('pending')
+  @ApiOperation({ summary: 'Get all pending invitations' })
+  async getPendingInvitations() {
+    return this.invitationsService.getPendingInvitations();
+  }
 
   @Post()
   @ApiOperation({ summary: 'Send an invitation to a new user' })
@@ -30,5 +37,22 @@ export class InvitationsController {
       { email: body.email, name: body.name, role },
       hardcodedAdminId
     );
+  }
+
+  @Public()
+  @Post('accept')
+  @ApiOperation({ summary: 'Accept an invitation and set a password' })
+  async acceptInvitation(@Body() body: { token: string; password: string; name: string }) {
+    return this.invitationsService.acceptInvitation({
+      token: body.token,
+      password: body.password,
+      name: body.name,
+    });
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Revoke an invitation' })
+  async revokeInvitation(@Param('id') id: string) {
+    return this.invitationsService.revokeInvitation(id);
   }
 }

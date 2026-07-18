@@ -15,6 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useConfirm } from "@/hooks/use-confirm";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", exact: true, svg: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="8" height="8" rx="1.5" /><rect x="13" y="3" width="8" height="8" rx="1.5" /><rect x="3" y="13" width="8" height="8" rx="1.5" /><rect x="13" y="13" width="8" height="8" rx="1.5" /></svg> },
@@ -74,6 +75,7 @@ export default function DashboardLayout({
   const queryClient = useQueryClient();
   const { session, isPending, isStudent, isAdmin, isSuperAdmin } = useUserRole();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [ConfirmDialog, confirm] = useConfirm();
 
   const { data: notifData } = useQuery({
     queryKey: ["notifications"],
@@ -146,7 +148,7 @@ export default function DashboardLayout({
       <aside className={`bg-sidebar text-[#EFEDE6] flex flex-col p-[22px_16px_20px] relative overflow-hidden z-50 fixed md:relative h-full w-[250px] transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
         {/* Brand */}
         <div className="flex items-center gap-[10px] p-[4px_6px_26px]">
-          <div className="w-[34px] h-[34px] rounded-[10px] overflow-hidden bg-white flex items-center justify-center shrink-0 border border-white/10 shadow-sm relative group cursor-pointer">
+          <div className="w-[34px] h-[34px] rounded-[10px] overflow-hidden bg-white flex items-center justify-center shrink-0 border border-white/10 shadow-sm relative group cursor-pointer animate-ghost">
             <img src="/logo.jpg" alt="Ghosted Logo" className="w-[120%] h-[120%] object-cover object-center transform group-hover:scale-110 transition-transform duration-300" />
           </div>
           <div className="font-serif font-semibold text-[20px] tracking-wide text-white">Ghosted</div>
@@ -197,7 +199,7 @@ export default function DashboardLayout({
               <div className="flex flex-col min-w-0">
                 <span className="text-[13px] font-semibold text-[#EFEDE6] truncate">{session.user?.name || 'User'}</span>
                 <span className="text-[10.5px] text-[#8B889A] tracking-[0.05em] uppercase truncate">
-                  {isAdmin ? 'Admin' : 'Org'}
+                  {isAdmin ? 'Admin' : isStudent ? 'Student' : 'Org'}
                 </span>
               </div>
             </button>
@@ -214,9 +216,13 @@ export default function DashboardLayout({
             )}
             <DropdownMenuSeparator className="bg-border my-1" />
             <DropdownMenuItem
-              onClick={async () => {
-                await authClient.signOut();
-                window.location.href = "/login";
+              onClick={async (e) => {
+                e.preventDefault();
+                const ok = await confirm("Sign Out", "Are you sure you want to sign out of Ghosted?");
+                if (ok) {
+                  await authClient.signOut();
+                  window.location.href = "/login";
+                }
               }}
               className="text-[10.5px] text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer px-3 py-2 rounded-lg"
             >
@@ -225,7 +231,7 @@ export default function DashboardLayout({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <svg className="absolute -right-[18px] bottom-[60px] opacity-[0.055] pointer-events-none" width="180" height="180" viewBox="0 0 24 24" fill="none">
+        <svg className="absolute -right-[18px] bottom-[60px] opacity-[0.055] pointer-events-none animate-ghost" width="180" height="180" viewBox="0 0 24 24" fill="none" style={{ animationDuration: '6s' }}>
           <path d="M12 2C7 2 4 6 4 11v9l3-2.5L9.5 20l2.5-2 2.5 2 2.5-2.5L20 20v-9c0-5-3-9-8-9z" fill="#F5F3EE" />
         </svg>
       </aside>
@@ -356,6 +362,7 @@ export default function DashboardLayout({
           {children}
         </div>
       </main>
+      <ConfirmDialog />
     </div>
   );
 }

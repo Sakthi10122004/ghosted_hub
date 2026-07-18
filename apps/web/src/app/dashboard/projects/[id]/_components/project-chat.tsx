@@ -9,6 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import EmojiPicker, { Theme } from "emoji-picker-react";
 import { useTheme } from "next-themes";
+import { useAlert } from "@/hooks/use-alert";
 
 export function ProjectChat({ projectId }: { projectId: string }) {
   const { session } = useUserRole();
@@ -20,6 +21,7 @@ export function ProjectChat({ projectId }: { projectId: string }) {
   const [mounted, setMounted] = useState(false);
   const [showEmojis, setShowEmojis] = useState(false);
   const { theme } = useTheme();
+  const [AlertDialogComponent, customAlert] = useAlert();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -85,6 +87,8 @@ export function ProjectChat({ projectId }: { projectId: string }) {
   // In a real app, we'd check dates.
 
   return (
+    <>
+    <AlertDialogComponent />
     <div className="flex flex-col h-[650px] bg-card border border-border rounded-[14px] overflow-hidden shadow-sm">
       
       {/* WhatsApp-style Header */}
@@ -141,10 +145,10 @@ export function ProjectChat({ projectId }: { projectId: string }) {
               <MoreVertical className="w-5 h-5 cursor-pointer hover:text-primary transition-colors outline-none" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-[180px]">
-              <DropdownMenuItem onClick={() => alert('Group Info modal would open here.')}>Group Info</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => alert('Search functionality would open here.')}>Search</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => alert('Notifications muted.')}>Mute Notifications</DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => alert('Clear chat requested.')}>Clear Chat</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => customAlert('Info', 'Group Info modal would open here.')}>Group Info</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => customAlert('Info', 'Search functionality would open here.')}>Search</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => customAlert('Success', 'Notifications muted.')}>Mute Notifications</DropdownMenuItem>
+              <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => customAlert('Info', 'Clear chat requested.')}>Clear Chat</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -281,5 +285,6 @@ export function ProjectChat({ projectId }: { projectId: string }) {
         </form>
       </div>
     </div>
+    </>
   );
 }

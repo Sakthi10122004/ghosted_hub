@@ -12,10 +12,7 @@ export const APP_DESCRIPTION =
 export const USER_ROLES = {
   SUPER_ADMIN: { label: "Super Admin", color: "red" },
   ORGANIZER: { label: "Organizer", color: "purple" },
-  MENTOR: { label: "Mentor", color: "blue" },
-  TEAM_LEAD: { label: "Team Lead", color: "green" },
   STUDENT: { label: "Student", color: "cyan" },
-  NONPROFIT_REP: { label: "Nonprofit Representative", color: "amber" },
 } as const;
 
 /** Cohort status flow (ordered) */

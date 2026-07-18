@@ -20,4 +20,18 @@ export class SettingsController {
     await this.settingsService.updateSettings(body);
     return { success: true };
   }
+
+  @Get('permissions')
+  @ApiOperation({ summary: 'Get role permissions matrix' })
+  async getPermissions() {
+    const data = await this.settingsService.getPermissions();
+    return { data };
+  }
+
+  @Patch('permissions')
+  @ApiOperation({ summary: 'Update role permissions matrix' })
+  async updatePermissions(@Body() body: Record<string, Record<string, boolean>>) {
+    await this.settingsService.updatePermissions(body);
+    return { success: true };
+  }
 }
