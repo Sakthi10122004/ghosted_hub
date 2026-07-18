@@ -483,6 +483,8 @@ function RolePermissionsEditor() {
     setSavingCell(cellId);
 
     const updated = { ...permissions };
+    if (!updated[permKey]) return;
+
     updated[permKey] = {
       ...updated[permKey],
       [roleKey]: !updated[permKey][roleKey],
