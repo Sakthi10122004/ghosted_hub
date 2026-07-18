@@ -26,6 +26,7 @@ RUN pnpm install --frozen-lockfile
 # Then build the project
 COPY --from=builder /app/out/full/ .
 COPY turbo.json turbo.json
+RUN pnpm --filter @ghosted/database db:generate
 RUN pnpm turbo build --filter=@ghosted/api...
 
 FROM base AS runner
