@@ -16,8 +16,6 @@ services:
       dockerfile: apps/web/Dockerfile
     container_name: ghosted-web
     restart: always
-    ports:
-      - "3000:3000"
     environment:
       - NODE_ENV=production
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:4000/api/v1}
@@ -34,8 +32,6 @@ services:
       dockerfile: apps/api/Dockerfile
     container_name: ghosted-api
     restart: always
-    ports:
-      - "4000:4000"
     environment:
       - NODE_ENV=production
       - API_PORT=4000
@@ -133,12 +129,34 @@ services:
     networks:
       - ghosted-network
 
+  # ─── Reverse Proxy (Caddy) ──────────────────────────────────────
+  caddy:
+    image: caddy:2-alpine
+    container_name: ghosted-caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ghosted-caddy-data:/data
+      - ghosted-caddy-config:/config
+    depends_on:
+      - web
+      - api
+    networks:
+      - ghosted-network
+
 volumes:
   ghosted-postgres-data:
     driver: local
   ghosted-redis-data:
     driver: local
   ghosted-minio-data:
+    driver: local
+  ghosted-caddy-data:
+    driver: local
+  ghosted-caddy-config:
     driver: local
 
 networks:
