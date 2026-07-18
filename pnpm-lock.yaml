@@ -29,6 +29,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@ghosted/database':
+        specifier: workspace:*
+        version: link:../../packages/database
       '@ghosted/shared':
         specifier: workspace:*
         version: link:../../packages/shared
