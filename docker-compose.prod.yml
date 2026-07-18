@@ -134,6 +134,8 @@ services:
     image: caddy:2-alpine
     container_name: ghosted-caddy
     restart: always
+    environment:
+      - DOMAIN=${DOMAIN:-t4gcghosted.duckdns.org}
     ports:
       - "80:80"
       - "443:443"
