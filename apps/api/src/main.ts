@@ -16,7 +16,7 @@ async function bootstrap() {
   });
 
   const configService = app.get(ConfigService);
-  const port = configService.get<number>("API_PORT", 4000);
+  const port = configService.get<number>("PORT") || configService.get<number>("API_PORT", 4000);
   const corsOrigin = configService.get<string>(
     "API_CORS_ORIGIN",
     "http://localhost:3000",
