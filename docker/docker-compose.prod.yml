@@ -12,8 +12,8 @@ services:
   # ─── Frontend (Web) ──────────────────────────────────────────────
   web:
     build:
-      context: .
-      dockerfile: apps/web/Dockerfile
+      context: ..
+      dockerfile: frontend/Dockerfile
     container_name: ghosted-web
     restart: always
     environment:
@@ -28,8 +28,8 @@ services:
   # ─── Backend (API) ───────────────────────────────────────────────
   api:
     build:
-      context: .
-      dockerfile: apps/api/Dockerfile
+      context: ..
+      dockerfile: backend/Dockerfile
     container_name: ghosted-api
     restart: always
     environment:

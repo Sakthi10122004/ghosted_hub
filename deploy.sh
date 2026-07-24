@@ -74,9 +74,9 @@ ssh $SSH_ARGS -t "$DEST" << EOF
   fi
 
   # Build and start services
-  docker compose -f docker-compose.prod.yml down
-  docker compose -f docker-compose.prod.yml build
-  docker compose -f docker-compose.prod.yml up -d
+  docker compose -f docker/docker-compose.prod.yml down
+  docker compose -f docker/docker-compose.prod.yml build
+  docker compose -f docker/docker-compose.prod.yml up -d
   
   echo "✅ Deployment finished!"
 EOF

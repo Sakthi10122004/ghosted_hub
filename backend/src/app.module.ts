@@ -26,7 +26,7 @@ import { DeliverablesModule } from './modules/deliverables/deliverables.module';
     // Global config — reads .env from monorepo root
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: [".env", "../../.env"],
+      envFilePath: [".env", "../.env"],
     }),
 
     // Core infrastructure

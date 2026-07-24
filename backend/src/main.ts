@@ -79,7 +79,7 @@ async function bootstrap() {
     },
   });
 
-  await app.listen(port);
+  await app.listen(port, "0.0.0.0");
   console.log(`\n🚀 Ghosted Hub API running on http://localhost:${port}`);
   console.log(`📚 Swagger docs at http://localhost:${port}/api/docs\n`);
 }

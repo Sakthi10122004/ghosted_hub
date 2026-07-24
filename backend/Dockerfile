@@ -39,4 +39,4 @@ USER expressjs
 
 COPY --from=installer /app .
 
-CMD ["node", "apps/api/dist/main.js"]
+CMD ["node", "backend/dist/main.js"]
