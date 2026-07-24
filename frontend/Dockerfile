@@ -26,6 +26,13 @@ RUN pnpm install --frozen-lockfile
 # Then build the project
 COPY --from=builder /app/out/full/ .
 COPY turbo.json turbo.json
+
+# Declare build arguments injected by Railway and expose them as ENV variables
+# so Next.js can bake them into the static files during the build
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ARG NEXT_PUBLIC_BETTER_AUTH_URL
+ENV NEXT_PUBLIC_BETTER_AUTH_URL=${NEXT_PUBLIC_BETTER_AUTH_URL}
 RUN pnpm turbo build --filter=@ghosted/web...
 
 FROM base AS runner
